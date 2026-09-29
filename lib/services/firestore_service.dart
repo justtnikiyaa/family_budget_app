@@ -54,24 +54,23 @@ class FirestoreService {
     required String inviteCode,
     required UserModel currentUser,
   }) async {
+    final cleanCode = inviteCode.trim().toUpperCase();
     final query = await _firestore
-        .collection(AppConstants.familiesCollection)
-        .where('inviteCode', isEqualTo: inviteCode.trim().toUpperCase())
+        .collection(AppConstants.householdsCollection)
+        .where('inviteCode', isEqualTo: cleanCode)
         .limit(1)
         .get();
 
     if (query.docs.isEmpty) {
-      throw Exception('Invalid invitation code. Family not found.');
+      throw Exception('Invalid invitation code. Household not found.');
     }
 
     final doc = query.docs.first;
     final family = FamilyModel.fromFirestore(doc);
 
     if (!family.memberIds.contains(currentUser.uid)) {
-      await _firestore
-          .collection(AppConstants.familiesCollection)
-          .doc(family.id)
-          .update({
+      await doc.reference.update({
+        'members': FieldValue.arrayUnion([currentUser.uid]),
         'memberIds': FieldValue.arrayUnion([currentUser.uid]),
       });
 

@@ -35,7 +35,8 @@ class AppConstants {
 
   // Firestore Collections
   static const String usersCollection = 'users';
-  static const String familiesCollection = 'families';
+  static const String householdsCollection = 'households';
+  static const String familiesCollection = 'households';
   static const String expensesCollection = 'expenses';
   static const String limitsCollection = 'limits';
   static const String billsCollection = 'bills';

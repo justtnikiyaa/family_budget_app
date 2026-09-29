@@ -22,6 +22,7 @@ class FamilyModel {
       'name': name,
       'inviteCode': inviteCode,
       'adminId': adminId,
+      'members': memberIds,
       'memberIds': memberIds,
       'createdAt': Timestamp.fromDate(createdAt),
     };
@@ -29,12 +30,13 @@ class FamilyModel {
 
   factory FamilyModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>? ?? {};
+    final rawMembers = data['members'] ?? data['memberIds'] ?? [];
     return FamilyModel(
       id: doc.id,
       name: data['name'] ?? '',
       inviteCode: data['inviteCode'] ?? '',
       adminId: data['adminId'] ?? '',
-      memberIds: List<String>.from(data['memberIds'] ?? []),
+      memberIds: List<String>.from(rawMembers),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
   }
