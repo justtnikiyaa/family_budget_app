@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../main_navigation.dart';
 import 'onboarding_screen.dart';
@@ -21,13 +22,19 @@ class _SplashScreenState extends State<SplashScreen>
   final AuthService _authService = AuthService();
   String _statusText = 'Connecting Sri Lankan household node...';
 
+  UserModel? _preloadedUserModel;
+
   @override
   void initState() {
     super.initState();
 
+    // Preload user data in parallel to eliminate end-of-animation stutter
+    _preloadUserData();
+
+    // 1.8s duration for snappy, elegant feel without dragging
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2800),
+      duration: const Duration(milliseconds: 1800),
     );
 
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -37,24 +44,24 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _scaleAnimation = Tween<double>(begin: 0.88, end: 1.0).animate(
+    _scaleAnimation = Tween<double>(begin: 0.90, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.0, 0.45, curve: Curves.easeOutBack),
+        curve: const Interval(0.0, 0.45, curve: Curves.easeOutCubic),
       ),
     );
 
-    _progressAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+    _progressAnimation = Tween<double>(begin: 0.05, end: 1.0).animate(
       CurvedAnimation(
         parent: _animController,
-        curve: const Interval(0.15, 0.95, curve: Curves.easeInOut),
+        curve: const Interval(0.05, 0.95, curve: Curves.fastOutSlowIn),
       ),
     );
 
     _animController.forward();
 
-    // Dynamic status text simulation
-    Timer(const Duration(milliseconds: 1400), () {
+    // Dynamic status text update
+    Timer(const Duration(milliseconds: 700), () {
       if (mounted) {
         setState(() {
           _statusText = 'Synchronizing household ledger...';
@@ -62,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen>
       }
     });
 
-    Timer(const Duration(milliseconds: 2300), () {
+    Timer(const Duration(milliseconds: 1350), () {
       if (mounted) {
         setState(() {
           _statusText = 'Household vault ready';
@@ -77,38 +84,50 @@ class _SplashScreenState extends State<SplashScreen>
     });
   }
 
+  void _preloadUserData() async {
+    final user = _authService.currentUser;
+    if (user != null) {
+      try {
+        _preloadedUserModel = await _authService.getUserModel(user.uid);
+      } catch (_) {
+        // Fallback default user model
+        _preloadedUserModel = UserModel(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName ?? 'Family Member',
+        );
+      }
+    }
+  }
+
   @override
   void dispose() {
     _animController.dispose();
     super.dispose();
   }
 
-  Future<void> _navigateNext() async {
-    final user = _authService.currentUser;
-    if (user != null) {
-      final userModel = await _authService.getUserModel(user.uid);
-      if (mounted && userModel != null) {
-        Navigator.pushReplacement(
-          context,
-          PageRouteBuilder(
-            pageBuilder: (context, anim1, anim2) => MainNavigationScreen(currentUser: userModel),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) =>
-                FadeTransition(opacity: animation, child: child),
-            transitionDuration: const Duration(milliseconds: 600),
-          ),
-        );
-        return;
-      }
-    }
+  void _navigateNext() {
+    if (!mounted) return;
 
-    if (mounted) {
+    if (_preloadedUserModel != null) {
+      Navigator.pushReplacement(
+        context,
+        PageRouteBuilder(
+          pageBuilder: (context, anim1, anim2) =>
+              MainNavigationScreen(currentUser: _preloadedUserModel!),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) =>
+              FadeTransition(opacity: animation, child: child),
+          transitionDuration: const Duration(milliseconds: 400),
+        ),
+      );
+    } else {
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
           pageBuilder: (context, anim1, anim2) => const OnboardingScreen(),
           transitionsBuilder: (context, animation, secondaryAnimation, child) =>
               FadeTransition(opacity: animation, child: child),
-          transitionDuration: const Duration(milliseconds: 600),
+          transitionDuration: const Duration(milliseconds: 400),
         ),
       );
     }
@@ -120,217 +139,270 @@ class _SplashScreenState extends State<SplashScreen>
       body: Container(
         width: double.infinity,
         height: double.infinity,
+        // Lighter, more vibrant and luminous Emerald gradient
         decoration: const BoxDecoration(
-          gradient: RadialGradient(
-            center: Alignment(0.0, -0.1),
-            radius: 1.1,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
             colors: [
-              Color(0xFF0F5A4F),
-              Color(0xFF084138),
-              Color(0xFF042B25),
-              Color(0xFF021B17),
+              Color(0xFF14B8A6), // Bright Emerald Teal
+              Color(0xFF0F766E), // Core Deep Emerald
+              Color(0xFF0D5D57), // Balanced Mid-Dark Emerald
+              Color(0xFF06443E), // Rich Forest Base
             ],
-            stops: [0.0, 0.35, 0.75, 1.0],
+            stops: [0.0, 0.35, 0.70, 1.0],
           ),
         ),
-        child: SafeArea(
-          child: AnimatedBuilder(
-            animation: _animController,
-            builder: (context, child) {
-              return FadeTransition(
-                opacity: _fadeAnimation,
-                child: ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Column(
-                    children: [
-                      const Spacer(flex: 3),
+        child: Stack(
+          children: [
+            // Soft luminous background ambient glow
+            Positioned(
+              top: MediaQuery.of(context).size.height * 0.22,
+              left: MediaQuery.of(context).size.width * 0.15,
+              right: MediaQuery.of(context).size.width * 0.15,
+              child: Container(
+                height: 240,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF5EEAD4).withValues(alpha: 0.18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF2DD4BF).withValues(alpha: 0.28),
+                      blurRadius: 90,
+                      spreadRadius: 20,
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-                      // Center Squircle Glassmorphic Icon
-                      Center(
-                        child: Container(
-                          width: 130,
-                          height: 130,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(38),
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                const Color(0xFF2DD4BF).withValues(alpha: 0.35),
-                                const Color(0xFF0F766E).withValues(alpha: 0.45),
+            SafeArea(
+              child: AnimatedBuilder(
+                animation: _animController,
+                builder: (context, child) {
+                  return FadeTransition(
+                    opacity: _fadeAnimation,
+                    child: ScaleTransition(
+                      scale: _scaleAnimation,
+                      child: Column(
+                        children: [
+                          const Spacer(flex: 3),
+
+                          // Center Glassmorphic Emblem Card
+                          Center(
+                            child: Container(
+                              width: 126,
+                              height: 126,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(36),
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    Colors.white.withValues(alpha: 0.28),
+                                    Colors.white.withValues(alpha: 0.10),
+                                  ],
+                                ),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.40),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF14B8A6).withValues(alpha: 0.35),
+                                    blurRadius: 36,
+                                    spreadRadius: 6,
+                                    offset: const Offset(0, 12),
+                                  ),
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.12),
+                                    blurRadius: 18,
+                                    offset: const Offset(0, 8),
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: CustomPaint(
+                                  size: const Size(64, 64),
+                                  painter: _ShieldHouseGrowthPainter(),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 32),
+
+                          // Title: Smart Family Budget
+                          const Text(
+                            'Smart Family',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              height: 1.15,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x30000000),
+                                  offset: Offset(0, 2),
+                                  blurRadius: 6,
+                                ),
                               ],
                             ),
-                            border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.22),
-                              width: 1.5,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF14B8A6).withValues(alpha: 0.25),
-                                blurRadius: 36,
-                                spreadRadius: 4,
-                                offset: const Offset(0, 10),
-                              ),
-                            ],
                           ),
-                          child: Center(
-                            child: CustomPaint(
-                              size: const Size(64, 64),
-                              painter: _ShieldHouseGrowthPainter(),
+                          const Text(
+                            'Budget',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 34,
+                              fontWeight: FontWeight.w800,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                              height: 1.15,
+                              shadows: [
+                                Shadow(
+                                  color: Color(0x30000000),
+                                  offset: Offset(0, 2),
+                                  blurRadius: 6,
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
 
-                      const SizedBox(height: 36),
+                          const SizedBox(height: 12),
 
-                      // Title: Smart Family Budget
-                      const Text(
-                        'Smart Family',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                          height: 1.15,
-                        ),
-                      ),
-                      const Text(
-                        'Budget',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 34,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: -0.5,
-                          height: 1.15,
-                        ),
-                      ),
-
-                      const SizedBox(height: 12),
-
-                      // Subtitle: SHARED HOUSEHOLD FINANCES
-                      const Text(
-                        'SHARED HOUSEHOLD FINANCES',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Poppins',
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 2.2,
-                          color: Color(0xFF99F6E4),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Multi-Gen Sync Pill
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(
-                            color: const Color(0xFF2DD4BF).withValues(alpha: 0.2),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Overlapping Avatars (M, F, K, +)
-                            _buildAvatarOverlap(),
-                            const SizedBox(width: 10),
-                            const Text(
-                              'Multi-Gen Sync',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFFE2E8F0),
-                              ),
+                          // Subtitle: SHARED HOUSEHOLD FINANCES
+                          const Text(
+                            'SHARED HOUSEHOLD FINANCES',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 2.4,
+                              color: Color(0xFFCCFBF1),
                             ),
-                          ],
-                        ),
-                      ),
+                          ),
 
-                      const Spacer(flex: 4),
+                          const SizedBox(height: 24),
 
-                      // Bottom Progress Bar
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 56.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(4),
-                          child: Stack(
-                            children: [
-                              // Background Track
-                              Container(
-                                height: 4,
-                                width: double.infinity,
-                                color: Colors.white.withValues(alpha: 0.15),
+                          // Multi-Gen Sync Pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                            decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.18),
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.25),
+                                width: 1,
                               ),
-                              // Active Bar
-                              FractionallySizedBox(
-                                widthFactor: _progressAnimation.value,
-                                child: Container(
-                                  height: 4,
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(4),
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFF2DD4BF),
-                                        Color(0xFF38BDF8),
-                                      ],
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF2DD4BF).withValues(alpha: 0.6),
-                                        blurRadius: 6,
-                                      ),
-                                    ],
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.08),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildAvatarOverlap(),
+                                const SizedBox(width: 10),
+                                const Text(
+                                  'Multi-Gen Sync',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          const Spacer(flex: 4),
+
+                          // Sleek Progress Bar
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 60.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(4),
+                              child: Stack(
+                                children: [
+                                  // Background Track
+                                  Container(
+                                    height: 4.5,
+                                    width: double.infinity,
+                                    color: Colors.white.withValues(alpha: 0.22),
+                                  ),
+                                  // Animated Active Glow Bar
+                                  FractionallySizedBox(
+                                    widthFactor: _progressAnimation.value.clamp(0.0, 1.0),
+                                    child: Container(
+                                      height: 4.5,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(4),
+                                        gradient: const LinearGradient(
+                                          colors: [
+                                            Color(0xFF5EEAD4),
+                                            Color(0xFF2DD4BF),
+                                            Colors.white,
+                                          ],
+                                        ),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF5EEAD4).withValues(alpha: 0.8),
+                                            blurRadius: 8,
+                                            spreadRadius: 1,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 14),
+
+                          // Dynamic Status Text & Spinner
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const SizedBox(
+                                width: 13,
+                                height: 13,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.8,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5EEAD4)),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                _statusText,
+                                style: TextStyle(
+                                  fontSize: 12.5,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w400,
                                 ),
                               ),
                             ],
                           ),
-                        ),
-                      ),
 
-                      const SizedBox(height: 14),
-
-                      // Spinner & Dynamic Status Text
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const SizedBox(
-                            width: 13,
-                            height: 13,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 1.8,
-                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF2DD4BF)),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _statusText,
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: const Color(0xFF99F6E4).withValues(alpha: 0.85),
-                              fontWeight: FontWeight.w400,
-                            ),
-                          ),
+                          const SizedBox(height: 36),
                         ],
                       ),
-
-                      const SizedBox(height: 32),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -371,7 +443,7 @@ class _SplashScreenState extends State<SplashScreen>
       decoration: BoxDecoration(
         color: color,
         shape: BoxShape.circle,
-        border: Border.all(color: const Color(0xFF042B25), width: 1.5),
+        border: Border.all(color: const Color(0xFF0F766E), width: 1.5),
       ),
       child: Center(
         child: Text(
@@ -396,7 +468,7 @@ class _ShieldHouseGrowthPainter extends CustomPainter {
 
     // Shield Outline
     final shieldPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.7)
+      ..color = Colors.white.withValues(alpha: 0.85)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2.0;
 
@@ -414,7 +486,7 @@ class _ShieldHouseGrowthPainter extends CustomPainter {
     final housePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.2
+      ..strokeWidth = 2.4
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
@@ -438,9 +510,9 @@ class _ShieldHouseGrowthPainter extends CustomPainter {
 
     // Upward Neon Growth Line
     final trendPaint = Paint()
-      ..color = const Color(0xFF2DD4BF)
+      ..color = const Color(0xFF5EEAD4)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2.6
+      ..strokeWidth = 2.8
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
@@ -454,7 +526,7 @@ class _ShieldHouseGrowthPainter extends CustomPainter {
 
     // Arrowhead & Glow Dot at peak
     final arrowPaint = Paint()
-      ..color = const Color(0xFF2DD4BF)
+      ..color = const Color(0xFF5EEAD4)
       ..style = PaintingStyle.fill;
 
     // Arrow tip
@@ -466,9 +538,9 @@ class _ShieldHouseGrowthPainter extends CustomPainter {
 
     canvas.drawPath(arrowPath, arrowPaint);
 
-    // Glowing circle dot
+    // Glowing circle dot at peak
     final dotPaint = Paint()..color = Colors.white;
-    canvas.drawCircle(Offset(w * 0.74, h * 0.34), 3.0, dotPaint);
+    canvas.drawCircle(Offset(w * 0.74, h * 0.34), 3.2, dotPaint);
   }
 
   @override
