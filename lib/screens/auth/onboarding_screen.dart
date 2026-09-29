@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
-import '../../widgets/custom_button.dart';
 import 'login_screen.dart';
-import 'register_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -14,133 +12,555 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  AppLanguage _selectedLanguage = AppLanguage.english;
 
-  final List<Map<String, dynamic>> _slides = [
+  final List<Map<String, dynamic>> _carouselItems = [
     {
-      'icon': Icons.family_restroom_rounded,
-      'title': 'Family Budget Sharing',
-      'subtitle': 'Manage and track your family expenses, savings, and shared wallets together in real-time.',
+      'image': 'assets/images/onboarding_family_budget.jpg',
+      'title': 'Track Family Spending Together',
+      'title_si': 'පවුලේ වියදම් එක්ව කළමනාකරණය කරමු',
+      'title_ta': 'குடும்பச் செலவுகளை ஒன்றாகக் கண்காணிக்கவும்',
+      'desc':
+          'Manage household expenses, stay within limits, and achieve savings goals as a family in real-time.',
+      'desc_si':
+          'ගෙදර දොරේ වියදම් කළමනාකරණය කර, සීමාවන් තුළ රැඳී, පවුලක් ලෙස එකමුතුව ඉතිරි කර ගැනීමේ ඉලක්ක සපුරා ගන්න.',
+      'desc_ta':
+          'வீட்டுச் செலவுகளை நிர்வகிக்கவும், வரம்புகளுக்குள் இருக்கவும், குடும்பமாக சேமிப்பு இலக்குகளை அடையவும்.',
     },
     {
-      'icon': Icons.speed_rounded,
-      'title': 'Category Limits & Bills',
-      'subtitle': 'Set monthly spending limits for categories and never miss upcoming bill payments.',
-    },
-    {
-      'icon': Icons.savings_rounded,
-      'title': 'Achieve Savings Goals',
-      'subtitle': 'Plan family vacations, emergencies, or milestones with interactive collaborative goals.',
+      'image': 'assets/images/onboarding_family_savings.jpg',
+      'title': 'Smart Savings & Shared Goals',
+      'title_si': 'බුද්ධිමත් ඉතිරිකිරීම් සහ පොදු ඉලක්ක',
+      'title_ta': 'புத்திசாலித்தனமான சேமிப்பு மற்றும் பகிரப்பட்ட இலக்குகள்',
+      'desc':
+          'Encourage kids and family members to save collectively with visual milestones, piggy banks, and progress rewards.',
+      'desc_si':
+          'දරුවන් සහ පවුලේ සැමට එකමුතුව ඉතිරි කිරීමට මඟ පෙන්වා, සිහින ඉලක්ක කරා පහසුවෙන්ම ළඟා වන්න.',
+      'desc_ta':
+          'சேமிப்பு மைல்கற்கள் மற்றும் இலக்குகளுடன் குடும்ப உறுப்பினர்களை ஒன்றாகச் சேமிக்க ஊக்குவிக்கவும்.',
     },
   ];
+
+  String _getTitle(Map<String, dynamic> item) {
+    switch (_selectedLanguage) {
+      case AppLanguage.sinhala:
+        return item['title_si'] ?? item['title'];
+      case AppLanguage.tamil:
+        return item['title_ta'] ?? item['title'];
+      case AppLanguage.english:
+        return item['title'];
+    }
+  }
+
+  String _getDesc(Map<String, dynamic> item) {
+    switch (_selectedLanguage) {
+      case AppLanguage.sinhala:
+        return item['desc_si'] ?? item['desc'];
+      case AppLanguage.tamil:
+        return item['desc_ta'] ?? item['desc'];
+      case AppLanguage.english:
+        return item['desc'];
+    }
+  }
+
+  String _getContinueText() {
+    switch (_selectedLanguage) {
+      case AppLanguage.sinhala:
+        return 'ඉදිරියට යන්න';
+      case AppLanguage.tamil:
+        return 'தொடரவும்';
+      case AppLanguage.english:
+        return 'Continue';
+    }
+  }
+
+  void _handleContinue() {
+    if (_currentPage < 1) {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const LoginScreen()),
+      );
+    }
+  }
+
+  void _showLanguagePickerModal() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Choose Language',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'භාෂාව / மொழி',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  ...AppLanguages.list.map((lang) {
+                    final isSelected = _selectedLanguage == lang.code;
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12.0),
+                      child: _buildLanguageCard(
+                        lang: lang,
+                        isSelected: isSelected,
+                        onTap: () {
+                          setState(() => _selectedLanguage = lang.code);
+                          setModalState(() {});
+                          Navigator.pop(ctx);
+                        },
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20),
-          child: Column(
-            children: [
-              Align(
-                alignment: Alignment.topRight,
-                child: TextButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const LoginScreen()),
-                    );
-                  },
-                  child: const Text('Skip', style: TextStyle(color: AppColors.textSecondary)),
-                ),
-              ),
-              Expanded(
-                child: PageView.builder(
-                  controller: _pageController,
-                  onPageChanged: (index) => setState(() => _currentPage = index),
-                  itemCount: _slides.length,
-                  itemBuilder: (context, index) {
-                    final slide = _slides[index];
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        CircleAvatar(
-                          radius: 70,
-                          backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                          child: Icon(slide['icon'] as IconData, size: 70, color: AppColors.primary),
-                        ),
-                        const SizedBox(height: 36),
-                        Text(
-                          slide['title'] as String,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.textPrimary,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          slide['subtitle'] as String,
-                          textAlign: TextAlign.center,
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: AppColors.textSecondary,
-                                height: 1.5,
-                              ),
+        child: Column(
+          children: [
+            // Top App Bar Pill Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Left Pill: App Name + Icon
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x08000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
                         ),
                       ],
-                    );
-                  },
-                ),
-              ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: List.generate(
-                  _slides.length,
-                  (index) => AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    margin: const EdgeInsets.symmetric(horizontal: 4),
-                    width: _currentPage == index ? 24 : 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: _currentPage == index ? AppColors.primary : Colors.grey.shade300,
-                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.home_work_rounded,
+                            color: Colors.white,
+                            size: 16,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          AppConstants.appName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
+
+                  // Right Pill: Country / Language Trigger
+                  GestureDetector(
+                    onTap: _showLanguagePickerModal,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE0E7FF),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: const Row(
+                        children: [
+                          Text(
+                            AppConstants.countryBadge,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF3730A3),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Main Content Area (PageView)
+            Expanded(
+              child: PageView(
+                controller: _pageController,
+                onPageChanged: (index) {
+                  setState(() => _currentPage = index);
+                },
+                children: [
+                  // Slide 1: Welcome & Overview (Image 1 from UI design)
+                  _buildIntroSlide(_carouselItems[0]),
+
+                  // Slide 2: Language Selection & Family Savings (Image 2 from UI design)
+                  _buildLanguageSelectionSlide(_carouselItems[1]),
+                ],
+              ),
+            ),
+
+            // Bottom Continue Button
+            Padding(
+              padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 24.0, top: 8.0),
+              child: ElevatedButton(
+                onPressed: _handleContinue,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF046A38),
+                  foregroundColor: Colors.white,
+                  minimumSize: const Size.fromHeight(56),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  elevation: 0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _getContinueText(),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward, size: 20),
+                  ],
                 ),
               ),
-              const SizedBox(height: 36),
-              CustomButton(
-                text: _currentPage == _slides.length - 1 ? 'Get Started' : 'Next',
-                onPressed: () {
-                  if (_currentPage == _slides.length - 1) {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
-                    );
-                  } else {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                    );
-                  }
-                },
-              ),
-              const SizedBox(height: 12),
-              OutlinedButton(
-                onPressed: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const LoginScreen()),
-                  );
-                },
-                style: OutlinedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  side: BorderSide(color: Colors.grey.shade300),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Slide 1 View
+  Widget _buildIntroSlide(Map<String, dynamic> item) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Column(
+        children: [
+          const SizedBox(height: 12),
+          // Illustration with ambient glow
+          Container(
+            height: 280,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withValues(alpha: 0.25),
+                  blurRadius: 28,
+                  spreadRadius: 2,
+                  offset: const Offset(0, 8),
                 ),
-                child: const Text('Already have an account? Sign In'),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                item['image'],
+                fit: BoxFit.cover,
+                errorBuilder: (_, error, stackTrace) => Container(
+                  color: Colors.white,
+                  child: const Icon(Icons.family_restroom, size: 80, color: AppColors.primary),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 28),
+
+          // Pagination Dots (Slide 1 active)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildPageDot(isActive: _currentPage == 0),
+              const SizedBox(width: 8),
+              _buildPageDot(isActive: _currentPage == 1),
+              const SizedBox(width: 8),
+              _buildPageDot(isActive: false),
+            ],
+          ),
+
+          const SizedBox(height: 32),
+
+          // Title
+          Text(
+            _getTitle(item),
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textPrimary,
+              height: 1.25,
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Description
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0),
+            child: Text(
+              _getDesc(item),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+                height: 1.5,
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // Slide 2 View: Language Selection
+  Widget _buildLanguageSelectionSlide(Map<String, dynamic> item) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 8),
+          // Illustration
+          Container(
+            height: 220,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withValues(alpha: 0.2),
+                  blurRadius: 24,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: Image.asset(
+                item['image'],
+                fit: BoxFit.cover,
+                errorBuilder: (_, error, stackTrace) => Container(
+                  color: Colors.white,
+                  child: const Icon(Icons.savings_rounded, size: 70, color: AppColors.primary),
+                ),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 20),
+
+          // Section Header
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Choose Language',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              Text(
+                'භාෂාව / மொழி',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               ),
             ],
           ),
+
+          const SizedBox(height: 12),
+
+          // Language Cards
+          ...AppLanguages.list.map((lang) {
+            final isSelected = _selectedLanguage == lang.code;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10.0),
+              child: _buildLanguageCard(
+                lang: lang,
+                isSelected: isSelected,
+                onTap: () {
+                  setState(() => _selectedLanguage = lang.code);
+                },
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  // Language Card Widget
+  Widget _buildLanguageCard({
+    required LanguageItem lang,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFE6F4F1) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? AppColors.secondary : Colors.grey.shade200,
+            width: isSelected ? 1.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.06)
+                  : const Color(0x06000000),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Left Indicator
+            Container(
+              width: 26,
+              height: 26,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected ? const Color(0xFF046A38) : const Color(0xFFE0E7FF),
+              ),
+              child: isSelected
+                  ? const Icon(Icons.check, size: 16, color: Colors.white)
+                  : null,
+            ),
+            const SizedBox(width: 14),
+
+            // Language Title & Subtitle
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    lang.title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    lang.subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: isSelected ? const Color(0xFF046A38) : AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Right Greeting Badge
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFCCFBF1) : const Color(0xFFEEF2FF),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                lang.greeting,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? const Color(0xFF0F766E) : const Color(0xFF4F46E5),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Dots
+  Widget _buildPageDot({required bool isActive}) {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 250),
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: isActive ? Colors.black : Colors.transparent,
+        border: Border.all(
+          color: Colors.black,
+          width: 1.5,
         ),
       ),
     );
