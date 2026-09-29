@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-import 'screens/auth/onboarding_screen.dart';
+import 'screens/auth/splash_screen.dart';
 import 'utils/constants.dart';
 import 'utils/theme.dart';
 
@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: AppConstants.appName,
       theme: AppTheme.lightTheme,
-      home: const OnboardingScreen(),
+      home: const SplashScreen(),
     );
   }
 }
