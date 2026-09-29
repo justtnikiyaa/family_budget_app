@@ -39,6 +39,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             children: screens,
           ),
           floatingActionButton: FloatingActionButton(
+            heroTag: 'mainNavFab',
             onPressed: () => QuickAddBottomSheet.show(context, activeUser),
             backgroundColor: AppColors.primary,
             shape: const CircleBorder(),

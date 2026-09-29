@@ -198,6 +198,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
           // 1. Category Limits Tab
           Scaffold(
             floatingActionButton: FloatingActionButton.extended(
+              heroTag: 'categoryLimitFab',
               onPressed: _showAddLimitDialog,
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add, color: Colors.white),
@@ -280,6 +281,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
           // 2. Bill Reminders Tab
           Scaffold(
             floatingActionButton: FloatingActionButton.extended(
+              heroTag: 'billReminderFab',
               onPressed: _showAddBillDialog,
               backgroundColor: AppColors.primary,
               icon: const Icon(Icons.add, color: Colors.white),

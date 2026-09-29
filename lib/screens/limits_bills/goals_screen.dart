@@ -135,6 +135,7 @@ class GoalsScreen extends StatelessWidget {
 
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'familyGoalFab',
         onPressed: () => _showAddGoalDialog(context),
         backgroundColor: AppColors.accent,
         icon: const Icon(Icons.add, color: Colors.white),
