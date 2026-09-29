@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "276027777653",
+    "project_id": "family-budget-app-we105",
+    "storage_bucket": "family-budget-app-we105.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:276027777653:android:c537b06e5cc8d714adce3c",
+        "android_client_info": {
+          "package_name": "com.example.family_budget_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBLaDX9T9Jb5lPH1P-wFtDkrumWZJQlSDE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
