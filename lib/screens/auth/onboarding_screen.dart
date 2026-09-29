@@ -15,6 +15,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   int _currentPage = 0;
   AppLanguage _selectedLanguage = AppLanguage.english;
   bool _isButtonPressed = false;
+  bool _isNavigating = false;
 
   final List<Map<String, dynamic>> _carouselItems = [
     {
@@ -77,21 +78,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   void _handleContinue() async {
-    setState(() => _isButtonPressed = true);
-    await Future.delayed(const Duration(milliseconds: 120));
-    if (mounted) setState(() => _isButtonPressed = false);
+    if (_isNavigating) return;
 
     if (_currentPage < 1) {
+      setState(() => _isButtonPressed = true);
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) setState(() => _isButtonPressed = false);
+
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOutCubic,
+        duration: const Duration(milliseconds: 550),
+        curve: Curves.fastOutSlowIn,
       );
     } else {
+      // Navigating from Language screen to LoginScreen
+      setState(() {
+        _isNavigating = true;
+        _isButtonPressed = true;
+      });
+
+      await Future.delayed(const Duration(milliseconds: 180));
       if (!mounted) return;
-      Navigator.pushReplacement(
+
+      Navigator.push(
         context,
-        SmoothPageRoute(page: const LoginScreen()),
-      );
+        SmoothSlideUpRoute(page: const LoginScreen()),
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _isNavigating = false;
+            _isButtonPressed = false;
+          });
+        }
+      });
     }
   }
 
@@ -318,15 +336,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      if (_isNavigating) ...[
+                        const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                      ],
                       Text(
-                        _getContinueText(),
+                        _isNavigating ? 'Opening...' : _getContinueText(),
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward, size: 20),
+                      if (!_isNavigating) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.arrow_forward, size: 20),
+                      ],
                     ],
                   ),
                 ),
