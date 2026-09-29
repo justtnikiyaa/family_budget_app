@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
 import '../main_navigation.dart';
 
 class JoinFamilyScreen extends StatefulWidget {
@@ -93,8 +94,8 @@ class _JoinFamilyScreenState extends State<JoinFamilyScreen> {
                   );
                   Navigator.pushAndRemoveUntil(
                     context,
-                    MaterialPageRoute(
-                      builder: (_) => MainNavigationScreen(currentUser: updatedUser),
+                    SmoothPageRoute(
+                      page: MainNavigationScreen(currentUser: updatedUser),
                     ),
                     (route) => false,
                   );

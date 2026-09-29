@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
 import 'login_screen.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -13,6 +14,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
   AppLanguage _selectedLanguage = AppLanguage.english;
+  bool _isButtonPressed = false;
 
   final List<Map<String, dynamic>> _carouselItems = [
     {
@@ -74,21 +76,28 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     }
   }
 
-  void _handleContinue() {
+  void _handleContinue() async {
+    setState(() => _isButtonPressed = true);
+    await Future.delayed(const Duration(milliseconds: 120));
+    if (mounted) setState(() => _isButtonPressed = false);
+
     if (_currentPage < 1) {
       _pageController.nextPage(
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOutCubic,
       );
     } else {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => const LoginScreen()),
+        SmoothPageRoute(page: const LoginScreen()),
       );
     }
   }
 
   void _showLanguagePickerModal() {
+    var tempLang = _selectedLanguage;
+
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -136,20 +145,50 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ),
                   const SizedBox(height: 16),
                   ...AppLanguages.list.map((lang) {
-                    final isSelected = _selectedLanguage == lang.code;
+                    final isSelected = tempLang == lang.code;
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: _buildLanguageCard(
                         lang: lang,
                         isSelected: isSelected,
                         onTap: () {
-                          setState(() => _selectedLanguage = lang.code);
-                          setModalState(() {});
-                          Navigator.pop(ctx);
+                          setModalState(() {
+                            tempLang = lang.code;
+                          });
                         },
                       ),
                     );
                   }),
+                  const SizedBox(height: 12),
+                  ElevatedButton(
+                    onPressed: () {
+                      setState(() => _selectedLanguage = tempLang);
+                      Navigator.pop(ctx);
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF046A38),
+                      foregroundColor: Colors.white,
+                      minimumSize: const Size.fromHeight(50),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(25),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          _getContinueText(),
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const Icon(Icons.check_circle_outline, size: 18),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             );
@@ -258,33 +297,38 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
 
-            // Bottom Continue Button
+            // Bottom Continue Button with Press Feedback Animation
             Padding(
               padding: const EdgeInsets.only(left: 20.0, right: 20.0, bottom: 24.0, top: 8.0),
-              child: ElevatedButton(
-                onPressed: _handleContinue,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF046A38),
-                  foregroundColor: Colors.white,
-                  minimumSize: const Size.fromHeight(56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(28),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _getContinueText(),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
+              child: AnimatedScale(
+                scale: _isButtonPressed ? 0.96 : 1.0,
+                duration: const Duration(milliseconds: 120),
+                curve: Curves.easeInOut,
+                child: ElevatedButton(
+                  onPressed: _handleContinue,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF046A38),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size.fromHeight(56),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
                     ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward, size: 20),
-                  ],
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _getContinueText(),
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward, size: 20),
+                    ],
+                  ),
                 ),
               ),
             ),

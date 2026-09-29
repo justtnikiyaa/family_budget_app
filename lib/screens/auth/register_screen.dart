@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
 
@@ -46,9 +47,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         if (mounted && userModel != null) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-              builder: (_) => MainNavigationScreen(currentUser: userModel),
-            ),
+            SmoothPageRoute(page: MainNavigationScreen(currentUser: userModel)),
             (route) => false,
           );
         }
@@ -324,7 +323,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onTap: () {
                         Navigator.pushReplacement(
                           context,
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
+                          SmoothPageRoute(
+                            page: const LoginScreen(),
+                            direction: AxisDirection.left,
+                          ),
                         );
                       },
                       child: const Text(

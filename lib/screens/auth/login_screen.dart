@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
 import '../dashboard/create_family_screen.dart';
 import '../main_navigation.dart';
 import 'join_family_screen.dart';
@@ -45,9 +46,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted && userModel != null) {
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(
-              builder: (_) => MainNavigationScreen(currentUser: userModel),
-            ),
+            SmoothPageRoute(page: MainNavigationScreen(currentUser: userModel)),
             (route) => false,
           );
         }
@@ -128,8 +127,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (model != null && mounted) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => JoinFamilyScreen(currentUser: model),
+                          SmoothPageRoute(
+                            page: JoinFamilyScreen(currentUser: model),
                           ),
                         );
                       }
@@ -137,7 +136,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   } else {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      SmoothPageRoute(page: const RegisterScreen()),
                     );
                   }
                 },
@@ -166,8 +165,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       if (model != null && mounted) {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (_) => CreateFamilyScreen(currentUser: model),
+                          SmoothPageRoute(
+                            page: CreateFamilyScreen(currentUser: model),
                           ),
                         );
                       }
@@ -175,7 +174,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   } else {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                      SmoothPageRoute(page: const RegisterScreen()),
                     );
                   }
                 },
@@ -449,7 +448,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onTap: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          SmoothPageRoute(page: const RegisterScreen()),
                         );
                       },
                       child: const Text(
