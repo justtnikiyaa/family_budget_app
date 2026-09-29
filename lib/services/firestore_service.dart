@@ -115,9 +115,12 @@ class FirestoreService {
       query = query.where('userId', isEqualTo: userId);
     }
 
-    return query.orderBy('date', descending: true).snapshots().map(
-          (snapshot) => snapshot.docs.map((doc) => ExpenseModel.fromFirestore(doc)).toList(),
-        );
+    return query.snapshots().map((snapshot) {
+      final list =
+          snapshot.docs.map((doc) => ExpenseModel.fromFirestore(doc)).toList();
+      list.sort((a, b) => b.date.compareTo(a.date));
+      return list;
+    });
   }
 
   Future<void> addExpense(ExpenseModel expense) async {
@@ -159,9 +162,11 @@ class FirestoreService {
     if (familyId != null && familyId.isNotEmpty) {
       query = query.where('familyId', isEqualTo: familyId);
     }
-    return query.orderBy('dueDate', descending: false).snapshots().map(
-          (s) => s.docs.map((d) => BillModel.fromFirestore(d)).toList(),
-        );
+    return query.snapshots().map((s) {
+      final list = s.docs.map((d) => BillModel.fromFirestore(d)).toList();
+      list.sort((a, b) => a.dueDate.compareTo(b.dueDate));
+      return list;
+    });
   }
 
   Future<void> addBill(BillModel bill) async {
