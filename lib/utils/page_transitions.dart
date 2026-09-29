@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// Premium Custom Page Route with silky smooth Slide, Scale, and Fade transitions.
+/// Premium Custom Page Route with unmistakable, cinematic full Slide & Fade transition.
 class SmoothPageRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
   final AxisDirection direction;
@@ -11,86 +11,54 @@ class SmoothPageRoute<T> extends PageRouteBuilder<T> {
     super.settings,
   }) : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 480),
-          reverseTransitionDuration: const Duration(milliseconds: 420),
+          transitionDuration: const Duration(milliseconds: 500),
+          reverseTransitionDuration: const Duration(milliseconds: 450),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            // Forward curved animation
-            final curve = CurvedAnimation(
+            final curvedAnimation = CurvedAnimation(
               parent: animation,
               curve: Curves.easeOutCubic,
               reverseCurve: Curves.easeInCubic,
             );
 
-            // Secondary animation for the page underneath (exit animation)
-            final secondaryCurve = CurvedAnimation(
-              parent: secondaryAnimation,
-              curve: Curves.easeOutCubic,
-            );
-
-            // Calculate slide offset based on direction
+            // Full-screen sweep offset based on direction
             Offset beginOffset;
             switch (direction) {
               case AxisDirection.right:
-                beginOffset = const Offset(0.20, 0.0);
+                beginOffset = const Offset(1.0, 0.0); // Full slide from right
                 break;
               case AxisDirection.left:
-                beginOffset = const Offset(-0.20, 0.0);
+                beginOffset = const Offset(-1.0, 0.0); // Full slide from left
                 break;
               case AxisDirection.up:
-                beginOffset = const Offset(0.0, 0.20);
+                beginOffset = const Offset(0.0, 1.0); // Full slide from bottom
                 break;
               case AxisDirection.down:
-                beginOffset = const Offset(0.0, -0.20);
+                beginOffset = const Offset(0.0, -1.0);
                 break;
             }
 
             final slideAnimation = Tween<Offset>(
               begin: beginOffset,
               end: Offset.zero,
-            ).animate(curve);
+            ).animate(curvedAnimation);
 
             final fadeAnimation = Tween<double>(
-              begin: 0.0,
+              begin: 0.1,
               end: 1.0,
-            ).animate(curve);
-
-            final scaleAnimation = Tween<double>(
-              begin: 0.94,
-              end: 1.0,
-            ).animate(curve);
-
-            // Subtle parallax push-back on exit
-            final exitSlide = Tween<Offset>(
-              begin: Offset.zero,
-              end: const Offset(-0.08, 0.0),
-            ).animate(secondaryCurve);
-
-            final exitFade = Tween<double>(
-              begin: 1.0,
-              end: 0.85,
-            ).animate(secondaryCurve);
+            ).animate(curvedAnimation);
 
             return SlideTransition(
-              position: exitSlide,
+              position: slideAnimation,
               child: FadeTransition(
-                opacity: exitFade,
-                child: SlideTransition(
-                  position: slideAnimation,
-                  child: FadeTransition(
-                    opacity: fadeAnimation,
-                    child: ScaleTransition(
-                      scale: scaleAnimation,
-                      child: child,
-                    ),
-                  ),
-                ),
+                opacity: fadeAnimation,
+                child: child,
               ),
             );
           },
         );
 }
 
-/// Upward sheet-style smooth reveal transition
+/// Upward full sheet-style smooth reveal transition
 class SmoothSlideUpRoute<T> extends PageRouteBuilder<T> {
   final Widget page;
 
@@ -99,38 +67,30 @@ class SmoothSlideUpRoute<T> extends PageRouteBuilder<T> {
     super.settings,
   }) : super(
           pageBuilder: (context, animation, secondaryAnimation) => page,
-          transitionDuration: const Duration(milliseconds: 450),
-          reverseTransitionDuration: const Duration(milliseconds: 380),
+          transitionDuration: const Duration(milliseconds: 500),
+          reverseTransitionDuration: const Duration(milliseconds: 420),
           transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            final curve = CurvedAnimation(
+            final curvedAnimation = CurvedAnimation(
               parent: animation,
               curve: Curves.easeOutCubic,
               reverseCurve: Curves.easeInCubic,
             );
 
             final slideAnimation = Tween<Offset>(
-              begin: const Offset(0.0, 0.18),
+              begin: const Offset(0.0, 1.0),
               end: Offset.zero,
-            ).animate(curve);
+            ).animate(curvedAnimation);
 
             final fadeAnimation = Tween<double>(
-              begin: 0.0,
+              begin: 0.2,
               end: 1.0,
-            ).animate(curve);
-
-            final scaleAnimation = Tween<double>(
-              begin: 0.96,
-              end: 1.0,
-            ).animate(curve);
+            ).animate(curvedAnimation);
 
             return SlideTransition(
               position: slideAnimation,
               child: FadeTransition(
                 opacity: fadeAnimation,
-                child: ScaleTransition(
-                  scale: scaleAnimation,
-                  child: child,
-                ),
+                child: child,
               ),
             );
           },
