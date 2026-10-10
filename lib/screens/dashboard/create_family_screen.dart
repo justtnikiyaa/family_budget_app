@@ -162,6 +162,29 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
                   ),
                 ],
               ),
+
+              const SizedBox(height: 32),
+
+              // Header Section
+              Text(
+                'Create Family',
+                style: GoogleFonts.inter(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                  height: 1.2,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Set up your shared household budget',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w400,
+                ),
+              ),
             ],
           ),
         ),
