@@ -75,7 +75,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         top: false,
         bottom: false,
         child: SizedBox(
-          height: 60,
+          height: 64,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -174,8 +174,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: const Color(0xFF0F766E),
                 shape: BoxShape.circle,
@@ -190,10 +190,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               child: const Icon(
                 Icons.add,
                 color: Colors.white,
-                size: 26,
+                size: 24,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             const Text(
               'Add',
               style: TextStyle(
