@@ -16,7 +16,8 @@ class ReportsScreen extends StatelessWidget {
     final currencyFormat = NumberFormat.currency(symbol: 'Rs ', decimalDigits: 2);
 
     return Scaffold(
-      body: StreamBuilder<List<ExpenseModel>>(
+      body: SafeArea(
+        child: StreamBuilder<List<ExpenseModel>>(
         stream: firestoreService.getExpenses(
           familyId: currentUser?.familyId,
           userId: currentUser?.familyId == null ? currentUser?.uid : null,
@@ -171,8 +172,9 @@ class ReportsScreen extends StatelessWidget {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSummaryMetric(String title, String value) {
     return Column(

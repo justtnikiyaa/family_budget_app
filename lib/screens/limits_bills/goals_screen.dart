@@ -11,7 +11,7 @@ class GoalsScreen extends StatelessWidget {
 
   const GoalsScreen({super.key, this.currentUser});
 
-  void _showAddGoalDialog(BuildContext context) {
+  static void showAddGoalDialog(BuildContext context, UserModel? currentUser) {
     final titleController = TextEditingController();
     final targetController = TextEditingController();
     DateTime targetDate = DateTime.now().add(const Duration(days: 90));
@@ -136,7 +136,7 @@ class GoalsScreen extends StatelessWidget {
     return Scaffold(
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'familyGoalFab',
-        onPressed: () => _showAddGoalDialog(context),
+        onPressed: () => showAddGoalDialog(context, currentUser),
         backgroundColor: AppColors.accent,
         icon: const Icon(Icons.add, color: Colors.white),
         label: const Text('New Goal', style: TextStyle(color: Colors.white)),

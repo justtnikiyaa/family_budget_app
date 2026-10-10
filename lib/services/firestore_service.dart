@@ -170,6 +170,10 @@ class FirestoreService {
     await docRef.set(limit.toMap(), SetOptions(merge: true));
   }
 
+  Future<void> deleteLimit(String limitId) async {
+    await _firestore.collection(AppConstants.limitsCollection).doc(limitId).delete();
+  }
+
   // ===================== BILLS & REMINDERS =====================
 
   Stream<List<BillModel>> getBills({String? familyId}) {

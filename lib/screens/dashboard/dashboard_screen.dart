@@ -2,10 +2,13 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import '../../models/bill_model.dart';
 import '../../models/expense_model.dart';
+import '../../models/goal_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../limits_bills/limits_bills_screen.dart';
 import '../profile/profile_screen.dart';
 import '../../widgets/quick_add_bottom_sheet.dart';
 
@@ -30,6 +33,60 @@ class _DashboardScreenState extends State<DashboardScreen> {
         email: _authService.currentUser?.email ?? '',
         displayName: _authService.currentUser?.displayName ?? 'User',
       );
+
+  Widget _buildQuickNavButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFF1F5F9)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x06000000),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildSegmentTab(int index, String label) {
     final isSelected = _selectedTabIndex == index;
@@ -605,6 +662,78 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
 
+                  const SizedBox(height: 14),
+
+                  // Quick Navigation Shortcuts (Limits, Bills, Goals, Reports)
+                  Row(
+                    children: [
+                      _buildQuickNavButton(
+                        icon: Icons.speed_rounded,
+                        label: 'Limits',
+                        color: const Color(0xFF0F766E),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LimitsBillsScreen(
+                                currentUser: _effectiveUser,
+                                initialIndex: 0,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildQuickNavButton(
+                        icon: Icons.receipt_long_rounded,
+                        label: 'Bills',
+                        color: const Color(0xFF0284C7),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LimitsBillsScreen(
+                                currentUser: _effectiveUser,
+                                initialIndex: 1,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildQuickNavButton(
+                        icon: Icons.savings_rounded,
+                        label: 'Goals',
+                        color: const Color(0xFFD97706),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LimitsBillsScreen(
+                                currentUser: _effectiveUser,
+                                initialIndex: 2,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildQuickNavButton(
+                        icon: Icons.bar_chart_rounded,
+                        label: 'Reports',
+                        color: const Color(0xFF7C3AED),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => LimitsBillsScreen(
+                                currentUser: _effectiveUser,
+                                initialIndex: 3,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+
                   const SizedBox(height: 18),
 
                   // Segmented Navigation Pills (3 Tabs)
@@ -712,12 +841,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             letterSpacing: 0.6,
                           ),
                         ),
-                        Text(
-                          'Monthly Caps',
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F766E),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LimitsBillsScreen(
+                                  currentUser: _effectiveUser,
+                                  initialIndex: 0,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Monthly Caps',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 11,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -747,6 +900,304 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       limitText: 'Limit Rs. 2,400.00',
                       avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
                       fallbackIcon: Icons.person_outline_rounded,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // UPCOMING BILLS SECTION
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'UPCOMING BILLS',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LimitsBillsScreen(
+                                  currentUser: _effectiveUser,
+                                  initialIndex: 1,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Manage All',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 11,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    StreamBuilder<List<BillModel>>(
+                      stream: _firestoreService.getBills(familyId: _effectiveUser.familyId),
+                      builder: (context, billSnap) {
+                        final bills = billSnap.data ?? [];
+                        final unpaidBills = bills.where((b) => !b.isPaid).toList();
+
+                        if (unpaidBills.isEmpty) {
+                          return GestureDetector(
+                            onTap: () => LimitsBillsScreen.showAddBillDialog(context, _effectiveUser),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFF1F5F9)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE0F2FE),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF0284C7), size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'No bills due right now',
+                                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13.5),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Tap to set a reminder for rent, utilities, etc.',
+                                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.add_circle_outline, color: Color(0xFF0F766E), size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final nextBill = unpaidBills.first;
+                        return Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.calendar_today_rounded, color: Color(0xFFD97706), size: 20),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      nextBill.title,
+                                      style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Due ${DateFormat('MMM dd, yyyy').format(nextBill.dueDate)}',
+                                      style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Text(
+                                currencyFormat.format(nextBill.amount),
+                                style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14, color: const Color(0xFF0F172A)),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // GOAL TRACKER SECTION
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'SAVINGS GOALS',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LimitsBillsScreen(
+                                  currentUser: _effectiveUser,
+                                  initialIndex: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Goal Tracker',
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Icon(
+                                Icons.arrow_forward_ios_rounded,
+                                size: 11,
+                                color: Color(0xFF0F766E),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    StreamBuilder<List<GoalModel>>(
+                      stream: _firestoreService.getGoals(familyId: _effectiveUser.familyId),
+                      builder: (context, goalSnap) {
+                        final goals = goalSnap.data ?? [];
+
+                        if (goals.isEmpty) {
+                          return GestureDetector(
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => LimitsBillsScreen(
+                                  currentUser: _effectiveUser,
+                                  initialIndex: 2,
+                                ),
+                              ),
+                            ),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFF1F5F9)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 40,
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFF3E8FF),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(Icons.savings_rounded, color: Color(0xFF7C3AED), size: 20),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Start a Family Savings Goal',
+                                          style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 13.5),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Track funds for trips, education, or big purchases',
+                                          style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.add_circle_outline, color: Color(0xFF0F766E), size: 20),
+                                ],
+                              ),
+                            ),
+                          );
+                        }
+
+                        final topGoal = goals.first;
+                        final progress = topGoal.targetAmount > 0
+                            ? (topGoal.savedAmount / topGoal.targetAmount).clamp(0.0, 1.0)
+                            : 0.0;
+                        return Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: const Color(0xFFF1F5F9)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    topGoal.title,
+                                    style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+                                  ),
+                                  Text(
+                                    '${currencyFormat.format(topGoal.savedAmount)} / ${currencyFormat.format(topGoal.targetAmount)}',
+                                    style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF0F766E)),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              ClipRRect(
+                                borderRadius: BorderRadius.circular(4),
+                                child: LinearProgressIndicator(
+                                  value: progress,
+                                  minHeight: 8,
+                                  backgroundColor: const Color(0xFFF1F5F9),
+                                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF0F766E)),
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                   const SizedBox(height: 30),

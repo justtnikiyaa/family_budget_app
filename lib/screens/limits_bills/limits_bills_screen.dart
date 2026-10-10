@@ -18,47 +18,16 @@ class LimitsBillsScreen extends StatefulWidget {
     this.initialIndex = 0,
   });
 
-  @override
-  State<LimitsBillsScreen> createState() => _LimitsBillsScreenState();
-}
-
-class _LimitsBillsScreenState extends State<LimitsBillsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  final FirestoreService _firestoreService = FirestoreService();
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(
-      length: 4,
-      vsync: this,
-      initialIndex: widget.initialIndex.clamp(0, 3),
-    );
-  }
-
-  @override
-  void didUpdateWidget(covariant LimitsBillsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialIndex != widget.initialIndex) {
-      _tabController.animateTo(widget.initialIndex.clamp(0, 3));
-    }
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
-  void _showAddLimitDialog() {
+  static void showAddLimitDialog(BuildContext context, UserModel? currentUser) {
     final amountController = TextEditingController();
     String selectedCategory = AppConstants.expenseCategories.first;
+    final firestoreService = FirestoreService();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Set Category Limit'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -92,14 +61,14 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
                 final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
 
                 if (limit > 0) {
-                  await _firestoreService.setLimit(
+                  await firestoreService.setLimit(
                     LimitModel(
                       id: '',
                       category: selectedCategory,
                       limitAmount: limit,
                       spentAmount: 0.0,
                       monthYear: currentMonth,
-                      familyId: widget.currentUser?.familyId,
+                      familyId: currentUser?.familyId,
                     ),
                   );
                   if (ctx.mounted) Navigator.pop(ctx);
@@ -113,15 +82,17 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
     );
   }
 
-  void _showAddBillDialog() {
+  static void showAddBillDialog(BuildContext context, UserModel? currentUser) {
     final titleController = TextEditingController();
     final amountController = TextEditingController();
     DateTime selectedDate = DateTime.now().add(const Duration(days: 7));
+    final firestoreService = FirestoreService();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Add Upcoming Bill'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -167,13 +138,13 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
                 final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
 
                 if (title.isNotEmpty && amount > 0) {
-                  await _firestoreService.addBill(
+                  await firestoreService.addBill(
                     BillModel(
                       id: '',
                       title: title,
                       amount: amount,
                       dueDate: selectedDate,
-                      familyId: widget.currentUser?.familyId,
+                      familyId: currentUser?.familyId,
                     ),
                   );
                   if (ctx.mounted) Navigator.pop(ctx);
@@ -186,6 +157,43 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
       ),
     );
   }
+
+  @override
+  State<LimitsBillsScreen> createState() => _LimitsBillsScreenState();
+}
+
+class _LimitsBillsScreenState extends State<LimitsBillsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+  final FirestoreService _firestoreService = FirestoreService();
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialIndex.clamp(0, 3),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant LimitsBillsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _tabController.animateTo(widget.initialIndex.clamp(0, 3));
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  void _showAddLimitDialog() => LimitsBillsScreen.showAddLimitDialog(context, widget.currentUser);
+
+  void _showAddBillDialog() => LimitsBillsScreen.showAddBillDialog(context, widget.currentUser);
 
   @override
   Widget build(BuildContext context) {
@@ -267,9 +275,22 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
                                   item.category,
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
-                                Text(
-                                  '${currencyFormat.format(item.spentAmount)} / ${currencyFormat.format(item.limitAmount)}',
-                                  style: const TextStyle(fontWeight: FontWeight.w600),
+                                Row(
+                                  children: [
+                                    Text(
+                                      '${currencyFormat.format(item.spentAmount)} / ${currencyFormat.format(item.limitAmount)}',
+                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                                    ),
+                                    if (item.id.isNotEmpty) ...[
+                                      const SizedBox(width: 8),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        onPressed: () => _firestoreService.deleteLimit(item.id),
+                                      ),
+                                    ],
+                                  ],
                                 ),
                               ],
                             ),
@@ -358,6 +379,13 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
                                 }
                               },
                             ),
+                            if (bill.id.isNotEmpty)
+                              IconButton(
+                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                                onPressed: () => _firestoreService.deleteBill(bill.id),
+                              ),
                           ],
                         ),
                       ),
