@@ -6,6 +6,8 @@ import '../../models/family_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
+import '../main_navigation.dart';
 
 class CreateFamilyScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -76,19 +78,170 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
   }
 
   void _showSuccessDialog(FamilyModel family) {
-    // Will be fully polished in next step
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Family Created!'),
-        content: Text('Invite code: ${family.inviteCode}'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success checkmark badge
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCCFBF1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Color(0xFF0F766E),
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Title
+              Text(
+                'Family Created!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Subtitle
+              Text(
+                'Your household "${family.name}" is now ready! Share this invitation code with your family members so they can join:',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Invite code display box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF99F6E4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'FAMILY INVITE CODE',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      family.inviteCode,
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 6,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Copy button
+              OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: family.inviteCode));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text('Invite code ${family.inviteCode} copied!'),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF0F766E),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0F766E),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  minimumSize: const Size.fromHeight(44),
+                ),
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: Text(
+                  'Copy Code',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Done / Go to Dashboard button
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  final adminName = _adminNameController.text.trim();
+                  final updatedUser = widget.currentUser.copyWith(
+                    displayName: adminName.isNotEmpty ? adminName : widget.currentUser.displayName,
+                    familyId: family.id,
+                    role: 'admin',
+                  );
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    SmoothPageRoute(
+                      page: MainNavigationScreen(currentUser: updatedUser),
+                    ),
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: Text(
+                  'Go to Dashboard',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -184,7 +337,10 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF8FF).withValues(alpha: 0.96),
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -546,6 +702,7 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
               const SizedBox(height: 24),
             ],
           ),
+        ),
         ),
       ),
     );
