@@ -276,6 +276,39 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             ],
           ),
           const SizedBox(height: 20),
+
+          // Primary CTA Button: QUICK SAVE
+          GestureDetector(
+            onTap: () {
+              // Quick save action
+            },
+            child: Container(
+              height: 54,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F766E),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x400F766E),
+                    blurRadius: 18,
+                    offset: Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: const Center(
+                child: Text(
+                  'QUICK SAVE',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                    letterSpacing: 0.8,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
         ],
       ),
     );
