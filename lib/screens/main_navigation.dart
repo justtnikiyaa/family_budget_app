@@ -3,6 +3,7 @@ import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../widgets/quick_add_bottom_sheet.dart';
 import 'dashboard/dashboard_screen.dart';
+import 'limits_bills/bills_screen.dart';
 import 'limits_bills/goals_screen.dart';
 import 'limits_bills/limits_bills_screen.dart';
 import 'limits_bills/reports_screen.dart';
@@ -30,9 +31,8 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
         final screens = [
           DashboardScreen(currentUser: activeUser),
-          LimitsBillsScreen(
+          BillsScreen(
             currentUser: activeUser,
-            initialIndex: 0,
             onBackToOverview: () => setState(() => _currentIndex = 0),
           ),
           ReportsScreen(currentUser: activeUser),
@@ -92,10 +92,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 onTap: () => setState(() => _currentIndex = 0),
               ),
 
-              // 2. Limits & Bills
+              // 2. Bills (Rakindu's Bills screen)
               _buildNavItem(
-                icon: Icons.account_balance_wallet_outlined,
-                label: 'Limits & Bills',
+                icon: Icons.receipt_long_rounded,
+                label: 'Bills',
                 isSelected: _currentIndex == 1,
                 onTap: () => setState(() => _currentIndex = 1),
               ),
@@ -260,11 +260,16 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             _buildActionSheetOption(
               icon: Icons.receipt_long_outlined,
               color: const Color(0xFF0284C7),
-              title: 'Add New Bill',
-              subtitle: 'Set a reminder for WiFi, utilities or subscriptions',
+              title: 'Bills',
+              subtitle: 'Track upcoming dues, settled bills & add new',
               onTap: () {
                 Navigator.pop(ctx);
-                LimitsBillsScreen.showAddBillDialog(context, activeUser);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BillsScreen(currentUser: activeUser),
+                  ),
+                );
               },
             ),
             _buildActionSheetOption(

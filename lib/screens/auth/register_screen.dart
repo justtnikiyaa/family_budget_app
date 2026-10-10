@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/page_transitions.dart';
+import '../../widgets/google_icon.dart';
 import '../main_navigation.dart';
 import 'login_screen.dart';
 
@@ -21,6 +22,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void dispose() {
@@ -63,6 +65,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      final userCred = await _authService.signInWithGoogle();
+
+      if (userCred != null && mounted) {
+        final userModel = await _authService.getUserModel(userCred.user!.uid);
+        if (mounted && userModel != null) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            SmoothPageRoute(page: MainNavigationScreen(currentUser: userModel)),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -278,7 +310,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
                 // Sign Up Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleSignUp,
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleSignUp,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF046A38),
                     foregroundColor: Colors.white,
@@ -303,6 +335,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
+                        ),
+                ),
+
+                const SizedBox(height: 14),
+
+                // Continue with Google Button
+                OutlinedButton(
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
+                    ),
+                    elevation: 0,
+                  ),
+                  child: _isGoogleLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF046A38)),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GoogleIcon(size: 20),
+                            SizedBox(width: 12),
+                            Text(
+                              'Sign up with Google',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
                         ),
                 ),
 

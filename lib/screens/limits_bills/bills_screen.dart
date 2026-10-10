@@ -7,8 +7,9 @@ import 'add_bill_screen.dart';
 
 class BillsScreen extends StatefulWidget {
   final UserModel? currentUser;
+  final VoidCallback? onBackToOverview;
 
-  const BillsScreen({super.key, this.currentUser});
+  const BillsScreen({super.key, this.currentUser, this.onBackToOverview});
 
   @override
   State<BillsScreen> createState() => _BillsScreenState();
@@ -216,7 +217,11 @@ class _BillsScreenState extends State<BillsScreen> {
                   icon: const Icon(Icons.arrow_back_ios_new,
                       size: 16, color: Color(0xFF0F172A)),
                   onPressed: () {
-                    if (Navigator.canPop(context)) Navigator.pop(context);
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else if (widget.onBackToOverview != null) {
+                      widget.onBackToOverview!();
+                    }
                   },
                 ),
               ),
