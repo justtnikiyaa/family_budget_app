@@ -23,6 +23,13 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
   String _amountText = '0.00';
   String _selectedCategory = 'Groceries';
   final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
+  final TextEditingController _noteController = TextEditingController();
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -185,8 +192,151 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             }).toList(),
           ),
           const SizedBox(height: 20),
+
+          // Note & Camera Attachment Row
+          Row(
+            children: [
+              Expanded(
+                child: CustomPaint(
+                  painter: const DashedBorderPainter(
+                    color: Color(0xFFCBD5E1),
+                    strokeWidth: 1.3,
+                    radius: 16.0,
+                  ),
+                  child: Container(
+                    height: 52,
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Row(
+                      children: [
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 18,
+                          color: Color(0xFF94A3B8),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: TextField(
+                            controller: _noteController,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF0F172A),
+                              fontWeight: FontWeight.w500,
+                            ),
+                            decoration: const InputDecoration(
+                              hintText: 'Add a note...',
+                              hintStyle: TextStyle(
+                                fontSize: 14,
+                                color: Color(0xFF94A3B8),
+                                fontWeight: FontWeight.w400,
+                              ),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Receipt camera attachment ready'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+                child: Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x1F0F172A),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.camera_alt_rounded,
+                      color: Colors.white,
+                      size: 22,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
+}
+
+class DashedBorderPainter extends CustomPainter {
+  final Color color;
+  final double strokeWidth;
+  final double radius;
+  final double dashWidth;
+  final double dashSpace;
+
+  const DashedBorderPainter({
+    required this.color,
+    this.strokeWidth = 1.2,
+    this.radius = 16.0,
+    this.dashWidth = 5.0,
+    this.dashSpace = 3.5,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(
+        strokeWidth / 2,
+        strokeWidth / 2,
+        size.width - strokeWidth,
+        size.height - strokeWidth,
+      ),
+      Radius.circular(radius),
+    );
+    final path = Path()..addRRect(rrect);
+    final dashedPath = Path();
+
+    for (final metric in path.computeMetrics()) {
+      double distance = 0.0;
+      while (distance < metric.length) {
+        final length = (distance + dashWidth < metric.length)
+            ? dashWidth
+            : metric.length - distance;
+        dashedPath.addPath(
+          metric.extractPath(distance, distance + length),
+          Offset.zero,
+        );
+        distance += dashWidth + dashSpace;
+      }
+    }
+
+    canvas.drawPath(dashedPath, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant DashedBorderPainter oldDelegate) =>
+      oldDelegate.color != color ||
+      oldDelegate.strokeWidth != strokeWidth ||
+      oldDelegate.dashWidth != dashWidth ||
+      oldDelegate.dashSpace != dashSpace;
 }
