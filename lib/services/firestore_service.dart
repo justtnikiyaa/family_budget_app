@@ -23,8 +23,12 @@ class FirestoreService {
   Future<FamilyModel> createFamily({
     required String familyName,
     required UserModel currentUser,
+    String? customInviteCode,
+    String? adminDisplayName,
   }) async {
-    final inviteCode = _generateInviteCode();
+    final inviteCode = (customInviteCode != null && customInviteCode.trim().isNotEmpty)
+        ? customInviteCode.trim().toUpperCase()
+        : _generateInviteCode();
     final familyDoc = _firestore.collection(AppConstants.familiesCollection).doc();
 
     final family = FamilyModel(
@@ -38,14 +42,23 @@ class FirestoreService {
 
     await familyDoc.set(family.toMap());
 
-    // Update user's familyId and role
+    // Update user's familyId and role (and displayName if updated)
+    final userUpdates = <String, dynamic>{
+      'uid': currentUser.uid,
+      'email': currentUser.email,
+      'familyId': familyDoc.id,
+      'role': 'admin',
+    };
+    if (adminDisplayName != null && adminDisplayName.trim().isNotEmpty) {
+      userUpdates['displayName'] = adminDisplayName.trim();
+    } else if (currentUser.displayName.isNotEmpty) {
+      userUpdates['displayName'] = currentUser.displayName;
+    }
+
     await _firestore
         .collection(AppConstants.usersCollection)
         .doc(currentUser.uid)
-        .update({
-      'familyId': familyDoc.id,
-      'role': 'admin',
-    });
+        .set(userUpdates, SetOptions(merge: true));
 
     return family;
   }
@@ -77,10 +90,12 @@ class FirestoreService {
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(currentUser.uid)
-          .update({
+          .set({
+        'uid': currentUser.uid,
+        'email': currentUser.email,
         'familyId': family.id,
         'role': 'member',
-      });
+      }, SetOptions(merge: true));
     }
 
     return family;
@@ -153,6 +168,10 @@ class FirestoreService {
         : _firestore.collection(AppConstants.limitsCollection).doc();
 
     await docRef.set(limit.toMap(), SetOptions(merge: true));
+  }
+
+  Future<void> deleteLimit(String limitId) async {
+    await _firestore.collection(AppConstants.limitsCollection).doc(limitId).delete();
   }
 
   // ===================== BILLS & REMINDERS =====================

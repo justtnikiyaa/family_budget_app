@@ -72,12 +72,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
           ),
         ],
       ),
-      body: StreamBuilder<List<ExpenseModel>>(
-        stream: _firestoreService.getExpenses(
-          familyId: widget.currentUser?.familyId,
-          userId: widget.currentUser?.familyId == null ? widget.currentUser?.uid : null,
-        ),
-        builder: (context, snapshot) {
+      body: SafeArea(
+        child: StreamBuilder<List<ExpenseModel>>(
+          stream: _firestoreService.getExpenses(
+            familyId: widget.currentUser?.familyId,
+            userId: widget.currentUser?.familyId == null ? widget.currentUser?.uid : null,
+          ),
+          builder: (context, snapshot) {
           // Prototype values as benchmark/fallback
           double income = 5200;
           double expenses = 3840;
@@ -443,8 +444,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
           );
         },
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLegendItem(Color color, String label, String pct) {
     return Row(

@@ -9,52 +9,12 @@ class GoalsScreen extends StatefulWidget {
 
   const GoalsScreen({super.key, this.currentUser});
 
-  @override
-  State<GoalsScreen> createState() => _GoalsScreenState();
-}
-
-class _GoalsScreenState extends State<GoalsScreen> {
-  final FirestoreService _firestoreService = FirestoreService();
-
-  // Seed goals matching prototype screenshot if Firestore collection is fresh
-  final List<GoalModel> _defaultSharedGoals = [
-    GoalModel(
-      id: 'default_shared_1',
-      title: 'HOUSE DEPOSIT',
-      category: 'PRIORITY',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2027, 12, 31),
-      isShared: true,
-    ),
-    GoalModel(
-      id: 'default_shared_2',
-      title: 'KIDS COLLEGE',
-      category: 'EDUCATION',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2028, 6, 30),
-      isShared: true,
-    ),
-  ];
-
-  final List<GoalModel> _defaultPersonalGoals = [
-    GoalModel(
-      id: 'default_personal_1',
-      title: 'NEW LAPTOP',
-      category: 'TECH & GEAR',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2026, 11, 30),
-      isShared: false,
-    ),
-  ];
-
-  void _showAddGoalDialog({required bool isShared}) {
+  static void showAddGoalDialog(BuildContext context, UserModel? currentUser, {bool isShared = true}) {
     final titleController = TextEditingController();
     final targetController = TextEditingController();
     final categoryController =
         TextEditingController(text: isShared ? 'PRIORITY' : 'TECH & GEAR');
+    final firestoreService = FirestoreService();
 
     showDialog(
       context: context,
@@ -109,7 +69,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
               final target = double.tryParse(targetController.text.trim()) ?? 0.0;
 
               if (title.isNotEmpty && target > 0) {
-                await _firestoreService.addGoal(
+                await firestoreService.addGoal(
                   GoalModel(
                     id: '',
                     title: title.toUpperCase(),
@@ -117,7 +77,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                     targetAmount: target,
                     savedAmount: 0.0,
                     targetDate: DateTime.now().add(const Duration(days: 180)),
-                    familyId: isShared ? widget.currentUser?.familyId : null,
+                    familyId: isShared ? currentUser?.familyId : null,
                     isShared: isShared,
                   ),
                 );
@@ -129,6 +89,51 @@ class _GoalsScreenState extends State<GoalsScreen> {
         ],
       ),
     );
+  }
+
+  @override
+  State<GoalsScreen> createState() => _GoalsScreenState();
+}
+
+class _GoalsScreenState extends State<GoalsScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
+
+  // Seed goals matching prototype screenshot if Firestore collection is fresh
+  final List<GoalModel> _defaultSharedGoals = [
+    GoalModel(
+      id: 'default_shared_1',
+      title: 'HOUSE DEPOSIT',
+      category: 'PRIORITY',
+      targetAmount: 200000,
+      savedAmount: 150000,
+      targetDate: DateTime(2027, 12, 31),
+      isShared: true,
+    ),
+    GoalModel(
+      id: 'default_shared_2',
+      title: 'KIDS COLLEGE',
+      category: 'EDUCATION',
+      targetAmount: 200000,
+      savedAmount: 150000,
+      targetDate: DateTime(2028, 6, 30),
+      isShared: true,
+    ),
+  ];
+
+  final List<GoalModel> _defaultPersonalGoals = [
+    GoalModel(
+      id: 'default_personal_1',
+      title: 'NEW LAPTOP',
+      category: 'TECH & GEAR',
+      targetAmount: 200000,
+      savedAmount: 150000,
+      targetDate: DateTime(2026, 11, 30),
+      isShared: false,
+    ),
+  ];
+
+  void _showAddGoalDialog({required bool isShared}) {
+    GoalsScreen.showAddGoalDialog(context, widget.currentUser, isShared: isShared);
   }
 
   void _showAddSavingsDialog(GoalModel goal) {

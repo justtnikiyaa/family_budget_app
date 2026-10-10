@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../models/bill_model.dart';
 import '../../models/limit_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/constants.dart';
 import 'bills_screen.dart';
 import 'goals_screen.dart';
 import 'reports_screen.dart';
@@ -10,8 +12,153 @@ import 'set_budget_limit_screen.dart';
 
 class LimitsBillsScreen extends StatefulWidget {
   final UserModel? currentUser;
+  final int initialIndex;
 
-  const LimitsBillsScreen({super.key, this.currentUser});
+  const LimitsBillsScreen({
+    super.key,
+    this.currentUser,
+    this.initialIndex = 0,
+  });
+
+  static void showAddLimitDialog(BuildContext context, UserModel? currentUser) {
+    final amountController = TextEditingController();
+    String selectedCategory = AppConstants.expenseCategories.first;
+    final firestoreService = FirestoreService();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Set Category Limit'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                initialValue: selectedCategory,
+                decoration: const InputDecoration(labelText: 'Category'),
+                items: AppConstants.expenseCategories
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) setDialogState(() => selectedCategory = val);
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Monthly Limit (Rs)'),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final limit = double.tryParse(amountController.text.trim()) ?? 0.0;
+                final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
+
+                if (limit > 0) {
+                  await firestoreService.setLimit(
+                    LimitModel(
+                      id: '',
+                      category: selectedCategory,
+                      limitAmount: limit,
+                      spentAmount: 0.0,
+                      monthYear: currentMonth,
+                      familyId: currentUser?.familyId,
+                    ),
+                  );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Save Limit'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static void showAddBillDialog(BuildContext context, UserModel? currentUser) {
+    final titleController = TextEditingController();
+    final amountController = TextEditingController();
+    DateTime selectedDate = DateTime.now().add(const Duration(days: 7));
+    final firestoreService = FirestoreService();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Add Upcoming Bill'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(labelText: 'Bill Name (e.g. Electricity, WiFi)'),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: amountController,
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                decoration: const InputDecoration(labelText: 'Amount (Rs)'),
+              ),
+              const SizedBox(height: 12),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('Due Date'),
+                subtitle: Text(DateFormat('yyyy-MM-dd').format(selectedDate)),
+                trailing: const Icon(Icons.calendar_today, size: 18),
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: selectedDate,
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (picked != null) {
+                    setDialogState(() => selectedDate = picked);
+                  }
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final title = titleController.text.trim();
+                final amount = double.tryParse(amountController.text.trim()) ?? 0.0;
+
+                if (title.isNotEmpty && amount > 0) {
+                  await firestoreService.addBill(
+                    BillModel(
+                      id: '',
+                      title: title,
+                      amount: amount,
+                      dueDate: selectedDate,
+                      familyId: currentUser?.familyId,
+                    ),
+                  );
+                  if (ctx.mounted) Navigator.pop(ctx);
+                }
+              },
+              child: const Text('Save Bill'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
   State<LimitsBillsScreen> createState() => _LimitsBillsScreenState();
