@@ -99,40 +99,6 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Seed goals matching prototype screenshot if Firestore collection is fresh
-  final List<GoalModel> _defaultSharedGoals = [
-    GoalModel(
-      id: 'default_shared_1',
-      title: 'HOUSE DEPOSIT',
-      category: 'PRIORITY',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2027, 12, 31),
-      isShared: true,
-    ),
-    GoalModel(
-      id: 'default_shared_2',
-      title: 'KIDS COLLEGE',
-      category: 'EDUCATION',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2028, 6, 30),
-      isShared: true,
-    ),
-  ];
-
-  final List<GoalModel> _defaultPersonalGoals = [
-    GoalModel(
-      id: 'default_personal_1',
-      title: 'NEW LAPTOP',
-      category: 'TECH & GEAR',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2026, 11, 30),
-      isShared: false,
-    ),
-  ];
-
   void _showAddGoalDialog({required bool isShared}) {
     GoalsScreen.showAddGoalDialog(context, widget.currentUser, isShared: isShared);
   }
@@ -145,21 +111,41 @@ class _GoalsScreenState extends State<GoalsScreen> {
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
-          'Contribute to ${goal.title}',
+          'Manage: ${goal.title}',
           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
-        content: TextField(
-          controller: amountController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Deposit Amount (Rs)',
-            prefixIcon: Icon(Icons.savings_outlined, color: Color(0xFF10B981)),
-          ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Target: Rs. ${NumberFormat('#,###').format(goal.targetAmount)} • Saved: Rs. ${NumberFormat('#,###').format(goal.savedAmount)}',
+              style: const TextStyle(fontSize: 12, color: Color(0xFF64748B)),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: amountController,
+              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+              decoration: const InputDecoration(
+                labelText: 'Contribute Amount (Rs)',
+                prefixIcon: Icon(Icons.savings_outlined, color: Color(0xFF10B981)),
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await _firestoreService.deleteGoal(goal.id);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('${goal.title} deleted.')),
+                );
+              }
+            },
+            child: const Text('Delete Goal', style: TextStyle(color: Colors.red)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -169,20 +155,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
             onPressed: () async {
               final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
               if (amt > 0) {
-                if (goal.id.startsWith('default_')) {
-                  setState(() {
-                    final target = goal.isShared
-                        ? _defaultSharedGoals.firstWhere((g) => g.id == goal.id)
-                        : _defaultPersonalGoals.firstWhere((g) => g.id == goal.id);
-                    target.toMap(); // update in-memory
-                  });
-                } else {
-                  await _firestoreService.addSavingsToGoal(goal.id, amt);
-                }
+                await _firestoreService.addSavingsToGoal(goal.id, amt);
                 if (ctx.mounted) Navigator.pop(ctx);
               }
             },
-            child: const Text('Contribute', style: TextStyle(color: Colors.white)),
+            child: const Text('Add Savings', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -400,11 +377,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
           final sharedGoals = firestoreGoals.where((g) => g.isShared).toList();
           final personalGoals = firestoreGoals.where((g) => !g.isShared).toList();
 
-          final effectiveShared =
-              sharedGoals.isNotEmpty ? sharedGoals : _defaultSharedGoals;
-          final effectivePersonal =
-              personalGoals.isNotEmpty ? personalGoals : _defaultPersonalGoals;
-
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             children: [
@@ -434,7 +406,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${effectiveShared.length} Active',
+                      '${sharedGoals.length} Active',
                       style: const TextStyle(
                         color: Color(0xFF10B981),
                         fontSize: 11,
@@ -446,11 +418,27 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Shared goals cards
-              ...effectiveShared.map(_buildGoalCard),
+              if (sharedGoals.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No shared family goals yet.\nTap "+ ADD SHARED GOAL" below to start saving together.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                ...sharedGoals.map(_buildGoalCard),
               const SizedBox(height: 6),
 
-              // Add Shared Goal Button
               _buildDashedAddButton(
                 label: 'ADD SHARED GOAL',
                 onTap: () => _showAddGoalDialog(isShared: true),
@@ -483,7 +471,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${effectivePersonal.length} Active',
+                      '${personalGoals.length} Active',
                       style: const TextStyle(
                         color: Color(0xFF10B981),
                         fontSize: 11,
@@ -495,11 +483,27 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Personal goals cards
-              ...effectivePersonal.map(_buildGoalCard),
+              if (personalGoals.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No personal goals yet.\nTap "+ ADD PERSONAL GOAL" below to track your personal savings.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                ...personalGoals.map(_buildGoalCard),
               const SizedBox(height: 6),
 
-              // Add Personal Goal Button
               _buildDashedAddButton(
                 label: 'ADD PERSONAL GOAL',
                 onTap: () => _showAddGoalDialog(isShared: false),
