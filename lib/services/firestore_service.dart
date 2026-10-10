@@ -44,17 +44,21 @@ class FirestoreService {
 
     // Update user's familyId and role (and displayName if updated)
     final userUpdates = <String, dynamic>{
+      'uid': currentUser.uid,
+      'email': currentUser.email,
       'familyId': familyDoc.id,
       'role': 'admin',
     };
     if (adminDisplayName != null && adminDisplayName.trim().isNotEmpty) {
       userUpdates['displayName'] = adminDisplayName.trim();
+    } else if (currentUser.displayName.isNotEmpty) {
+      userUpdates['displayName'] = currentUser.displayName;
     }
 
     await _firestore
         .collection(AppConstants.usersCollection)
         .doc(currentUser.uid)
-        .update(userUpdates);
+        .set(userUpdates, SetOptions(merge: true));
 
     return family;
   }
@@ -86,10 +90,12 @@ class FirestoreService {
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(currentUser.uid)
-          .update({
+          .set({
+        'uid': currentUser.uid,
+        'email': currentUser.email,
         'familyId': family.id,
         'role': 'member',
-      });
+      }, SetOptions(merge: true));
     }
 
     return family;
