@@ -4,7 +4,6 @@ import '../../models/expense_model.dart';
 import '../../models/limit_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
-import '../../utils/constants.dart';
 import '../main_navigation.dart';
 import 'bills_screen.dart';
 import 'goals_screen.dart';
@@ -24,65 +23,10 @@ class LimitsBillsScreen extends StatefulWidget {
   });
 
   static void showAddLimitDialog(BuildContext context, UserModel? currentUser) {
-    final amountController = TextEditingController();
-    String selectedCategory = AppConstants.expenseCategories.first;
-    final firestoreService = FirestoreService();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: const Text('Set Category Limit'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              DropdownButtonFormField<String>(
-                initialValue: selectedCategory,
-                decoration: const InputDecoration(labelText: 'Category'),
-                items: AppConstants.expenseCategories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (val) {
-                  if (val != null) setDialogState(() => selectedCategory = val);
-                },
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: amountController,
-                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                decoration: const InputDecoration(labelText: 'Monthly Limit (Rs)'),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final limit = double.tryParse(amountController.text.trim()) ?? 0.0;
-                final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-
-                if (limit > 0) {
-                  await firestoreService.setLimit(
-                    LimitModel(
-                      id: '',
-                      category: selectedCategory,
-                      limitAmount: limit,
-                      spentAmount: 0.0,
-                      monthYear: currentMonth,
-                      familyId: currentUser?.familyId,
-                    ),
-                  );
-                  if (ctx.mounted) Navigator.pop(ctx);
-                }
-              },
-              child: const Text('Save Limit'),
-            ),
-          ],
-        ),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SetBudgetLimitScreen(currentUser: currentUser),
       ),
     );
   }
