@@ -20,6 +20,8 @@ class QuickAddBottomSheet extends StatefulWidget {
 }
 
 class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
+  String _amountText = '0.00';
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -101,6 +103,39 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
               ),
               const SizedBox(width: 40), // Balances the back button
             ],
+          ),
+          const SizedBox(height: 20),
+
+          // Large Amount Display
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'RS.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF64748B),
+                    letterSpacing: 0.8,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _amountText,
+                    style: const TextStyle(
+                      fontSize: 48,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -1.0,
+                      height: 1.1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 24),
         ],
