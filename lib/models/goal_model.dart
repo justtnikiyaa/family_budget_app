@@ -8,6 +8,8 @@ class GoalModel {
   final DateTime targetDate;
   final String? familyId;
   final String? iconName;
+  final String category;
+  final bool isShared;
 
   GoalModel({
     required this.id,
@@ -17,6 +19,8 @@ class GoalModel {
     required this.targetDate,
     this.familyId,
     this.iconName = 'savings',
+    this.category = 'PRIORITY',
+    this.isShared = true,
   });
 
   Map<String, dynamic> toMap() {
@@ -27,6 +31,8 @@ class GoalModel {
       'targetDate': Timestamp.fromDate(targetDate),
       'familyId': familyId,
       'iconName': iconName,
+      'category': category,
+      'isShared': isShared,
     };
   }
 
@@ -40,6 +46,8 @@ class GoalModel {
       targetDate: (data['targetDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       familyId: data['familyId'],
       iconName: data['iconName'] ?? 'savings',
+      category: data['category'] ?? 'PRIORITY',
+      isShared: data['isShared'] ?? (data['familyId'] != null),
     );
   }
 }
