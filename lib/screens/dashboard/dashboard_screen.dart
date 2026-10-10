@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/user_model.dart';
@@ -373,10 +374,158 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 18),
+
+              // Donut Chart & Spending Distribution Card
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const SpendingDonutChart(
+                      segments: [
+                        DonutSegment(value: 40, color: Color(0xFF0F766E)), // Groceries (Teal)
+                        DonutSegment(value: 25, color: Color(0xFF334155)), // Utilities (Dark slate)
+                        DonutSegment(value: 20, color: Color(0xFF10B981)), // Education (Emerald)
+                        DonutSegment(value: 15, color: Color(0xFF2DD4BF)), // Leisure (Cyan/Mint)
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    Text(
+                      'SPENDING DISTRIBUTION',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
       ),
     );
   }
+}
+
+class DonutSegment {
+  final double value;
+  final Color color;
+
+  const DonutSegment({required this.value, required this.color});
+}
+
+class SpendingDonutChart extends StatelessWidget {
+  final List<DonutSegment> segments;
+  final double size;
+  final double strokeWidth;
+
+  const SpendingDonutChart({
+    super.key,
+    required this.segments,
+    this.size = 170,
+    this.strokeWidth = 24,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size(size, size),
+            painter: _DonutChartPainter(
+              segments: segments,
+              strokeWidth: strokeWidth,
+            ),
+          ),
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF0F766E), width: 2.2),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.pie_chart_outline_rounded,
+                    size: 18,
+                    color: Color(0xFF0F766E),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Pool Met',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DonutChartPainter extends CustomPainter {
+  final List<DonutSegment> segments;
+  final double strokeWidth;
+
+  _DonutChartPainter({required this.segments, required this.strokeWidth});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = (size.width - strokeWidth) / 2;
+    final total = segments.fold<double>(0, (sum, s) => sum + s.value);
+    if (total == 0) return;
+
+    double startAngle = -pi / 2;
+
+    for (final segment in segments) {
+      final sweepAngle = (segment.value / total) * 2 * pi;
+      final paint = Paint()
+        ..color = segment.color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = strokeWidth
+        ..strokeCap = StrokeCap.butt;
+
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+
+      startAngle += sweepAngle;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DonutChartPainter oldDelegate) => true;
 }
