@@ -20,10 +20,8 @@ class AddGoalScreen extends StatefulWidget {
 }
 
 class _AddGoalScreenState extends State<AddGoalScreen> {
-  final TextEditingController _amountController =
-      TextEditingController(text: '150000');
-  final TextEditingController _titleController =
-      TextEditingController(text: 'House Deposit');
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
 
   late bool _isShared;
   String _selectedCategory = 'PRIORITY';
@@ -77,7 +75,6 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
     super.initState();
     _isShared = widget.initialIsShared;
     if (!_isShared) {
-      _titleController.text = 'New Laptop';
       _selectedCategory = 'TECH & GEAR';
     }
   }

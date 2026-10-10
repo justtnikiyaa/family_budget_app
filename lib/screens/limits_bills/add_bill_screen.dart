@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../models/bill_model.dart';
+import '../../models/family_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import 'bills_screen.dart';
@@ -15,9 +16,8 @@ class AddBillScreen extends StatefulWidget {
 }
 
 class _AddBillScreenState extends State<AddBillScreen> {
-  final TextEditingController _amountController = TextEditingController(text: '8500');
-  final TextEditingController _titleController =
-      TextEditingController(text: 'CEB Electricity Bill');
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _titleController = TextEditingController();
 
   String _selectedCategory = 'Utility';
   DateTime _dueDate = DateTime.now().add(const Duration(days: 1));
@@ -27,13 +27,6 @@ class _AddBillScreenState extends State<AddBillScreen> {
 
   final List<String> _categories = ['Utility', 'Internet', 'Banking', 'Rent'];
   final List<int> _quickAmounts = [1000, 2500, 5000, 10000];
-
-  final List<Map<String, String>> _familyMembers = [
-    {'initial': '★', 'name': 'Shared Household'},
-    {'initial': 'S', 'name': 'Sunil (Dad)'},
-    {'initial': 'N', 'name': 'Nirosha (Mom)'},
-    {'initial': 'K', 'name': 'Kavindu (Me)'},
-  ];
 
   final FirestoreService _firestoreService = FirestoreService();
   bool _isLoading = false;
@@ -300,6 +293,8 @@ class _AddBillScreenState extends State<AddBillScreen> {
                           ),
                           decoration: const InputDecoration(
                             border: InputBorder.none,
+                            hintText: '0',
+                            hintStyle: TextStyle(color: Colors.white38),
                             isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
@@ -315,9 +310,9 @@ class _AddBillScreenState extends State<AddBillScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   const Text(
-                    'Average monthly estimate: Rs. 8,200',
+                    'Tap quick amounts below or enter custom value',
                     style: TextStyle(
                       color: Color(0xFF94A3B8),
                       fontSize: 12,
@@ -687,64 +682,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: _familyMembers.map((member) {
-                      final isSelected = _assignedResponsibility == member['name'];
-                      return GestureDetector(
-                        onTap: () => setState(() => _assignedResponsibility = member['name']!),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? const Color(0xFF059669)
-                                : const Color(0xFFF8FAFC),
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: isSelected
-                                  ? const Color(0xFF059669)
-                                  : const Color(0xFFE2E8F0),
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 20,
-                                height: 20,
-                                decoration: BoxDecoration(
-                                  color: isSelected
-                                      ? Colors.white.withValues(alpha: 0.2)
-                                      : const Color(0xFFE2E8F0),
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: Text(
-                                  member['initial']!,
-                                  style: TextStyle(
-                                    color: isSelected ? Colors.white : const Color(0xFF475569),
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                member['name']!,
-                                style: TextStyle(
-                                  color: isSelected ? Colors.white : const Color(0xFF334155),
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
+                  _buildFamilyResponsibilityChips(),
                 ],
               ),
             ),
@@ -788,4 +726,120 @@ class _AddBillScreenState extends State<AddBillScreen> {
       ),
     );
   }
+
+  Widget _buildFamilyResponsibilityChips() {
+    final familyId = widget.currentUser?.familyId;
+
+    if (familyId != null && familyId.isNotEmpty) {
+      return StreamBuilder<FamilyModel?>(
+        stream: _firestoreService.getFamilyStream(familyId),
+        builder: (context, familySnap) {
+          final family = familySnap.data;
+          final memberIds = family?.memberIds ??
+              (widget.currentUser != null ? [widget.currentUser!.uid] : <String>[]);
+
+          return StreamBuilder<List<UserModel>>(
+            stream: _firestoreService.getFamilyMembers(memberIds),
+            builder: (context, membersSnap) {
+              final realMembers = membersSnap.data ?? [];
+
+              final List<Map<String, String>> options = [
+                {'initial': '★', 'name': 'Shared Household'},
+              ];
+
+              for (final member in realMembers) {
+                final isMe = member.uid == widget.currentUser?.uid;
+                final name = member.displayName.isNotEmpty
+                    ? (isMe ? '${member.displayName} (Me)' : member.displayName)
+                    : (isMe ? 'Me' : 'Family Member');
+                final initial = member.displayName.isNotEmpty
+                    ? member.displayName[0].toUpperCase()
+                    : 'U';
+                options.add({'initial': initial, 'name': name});
+              }
+
+              return _renderResponsibilityChips(options);
+            },
+          );
+        },
+      );
+    }
+
+    // Single user / not in household yet
+    final myName = (widget.currentUser?.displayName.isNotEmpty == true)
+        ? '${widget.currentUser!.displayName} (Me)'
+        : 'Me';
+    final myInitial = (widget.currentUser?.displayName.isNotEmpty == true)
+        ? widget.currentUser!.displayName[0].toUpperCase()
+        : 'M';
+
+    final options = [
+      {'initial': '★', 'name': 'Shared Household'},
+      {'initial': myInitial, 'name': myName},
+    ];
+
+    return _renderResponsibilityChips(options);
+  }
+
+  Widget _renderResponsibilityChips(List<Map<String, String>> members) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 8,
+      children: members.map((member) {
+        final isSelected = _assignedResponsibility == member['name'];
+        return GestureDetector(
+          onTap: () => setState(() => _assignedResponsibility = member['name']!),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? const Color(0xFF059669)
+                  : const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSelected
+                    ? const Color(0xFF059669)
+                    : const Color(0xFFE2E8F0),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : const Color(0xFFE2E8F0),
+                    shape: BoxShape.circle,
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    member['initial']!,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : const Color(0xFF475569),
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  member['name']!,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : const Color(0xFF334155),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
 }
+
