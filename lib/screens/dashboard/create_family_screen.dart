@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../models/family_model.dart';
 import '../../models/user_model.dart';
+import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
 
 class CreateFamilyScreen extends StatefulWidget {
@@ -17,11 +19,78 @@ class CreateFamilyScreen extends StatefulWidget {
 class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
   final TextEditingController _familyNameController = TextEditingController();
   late final TextEditingController _adminNameController;
+  final FirestoreService _firestoreService = FirestoreService();
   String? _previewInviteCode;
   bool _isLoading = false;
 
-  void _handleCreateFamily() {
-    // Handled in Firestore integration step
+  Future<void> _handleCreateFamily() async {
+    final familyName = _familyNameController.text.trim();
+    if (familyName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Text('Please enter a household name'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final adminName = _adminNameController.text.trim();
+      final family = await _firestoreService.createFamily(
+        familyName: familyName,
+        currentUser: widget.currentUser,
+        customInviteCode: _previewInviteCode,
+        adminDisplayName: adminName.isNotEmpty ? adminName : null,
+      );
+
+      if (mounted) {
+        _showSuccessDialog(family);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error creating family: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _showSuccessDialog(FamilyModel family) {
+    // Will be fully polished in next step
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Family Created!'),
+        content: Text('Invite code: ${family.inviteCode}'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _generateRandomCode() {
