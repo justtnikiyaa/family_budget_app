@@ -328,12 +328,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
               final gAmount = categoryTotals['Groceries'] ?? categoryTotals['Food & Dining'] ?? (totalExpenses * 0.40);
               final uAmount = categoryTotals['Utilities & Bills'] ?? categoryTotals['Utilities'] ?? (totalExpenses * 0.25);
               final eAmount = categoryTotals['Education'] ?? (totalExpenses * 0.20);
-              final lAmount = categoryTotals['Entertainment'] ?? categoryTotals['Shopping'] ?? (totalExpenses * 0.15);
+              final lAmount = categoryTotals['Entertainment'] ??
+                  categoryTotals['Shopping'] ??
+                  categoryTotals['Leisure'] ??
+                  (totalExpenses * 0.15);
 
               final gPct = (gAmount / totalExpenses * 100).round().clamp(5, 70);
               final uPct = (uAmount / totalExpenses * 100).round().clamp(5, 50);
               final ePct = (eAmount / totalExpenses * 100).round().clamp(5, 40);
-              final lPct = (100 - gPct - uPct - ePct).clamp(5, 40);
+              final lPct = (lAmount / totalExpenses * 100).round().clamp(5, 40);
 
               groceriesPercent = '$gPct%';
               utilitiesPercent = '$uPct%';
@@ -364,7 +367,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             final momProgress = (momSpent / momLimit).clamp(0.0, 1.0);
 
             return SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+              padding: const EdgeInsets.fromLTRB(20.0, 12.0, 20.0, 36.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
@@ -625,11 +629,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFF1F5F9), width: 1.2),
                         boxShadow: const [
                           BoxShadow(
                             color: Color(0x06000000),
-                            blurRadius: 16,
-                            offset: Offset(0, 4),
+                            blurRadius: 18,
+                            offset: Offset(0, 6),
                           ),
                         ],
                       ),
