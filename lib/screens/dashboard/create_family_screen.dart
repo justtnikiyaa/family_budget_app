@@ -1,4 +1,6 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../models/user_model.dart';
 import '../../utils/constants.dart';
@@ -15,6 +17,41 @@ class CreateFamilyScreen extends StatefulWidget {
 class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
   final TextEditingController _familyNameController = TextEditingController();
   late final TextEditingController _adminNameController;
+  String? _previewInviteCode;
+
+  String _generateRandomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final random = Random();
+    return List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+  }
+
+  void _onGenerateOrCopyInviteCode() {
+    if (_previewInviteCode == null) {
+      final code = _generateRandomCode();
+      setState(() {
+        _previewInviteCode = code;
+      });
+      Clipboard.setData(ClipboardData(text: code));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invite code $code generated & copied to clipboard!'),
+          backgroundColor: const Color(0xFF0F766E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else {
+      Clipboard.setData(ClipboardData(text: _previewInviteCode!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invite code $_previewInviteCode copied to clipboard!'),
+          backgroundColor: const Color(0xFF0F766E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -361,6 +398,66 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
                       ),
                     ),
                   ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Invite Members Section
+              Center(
+                child: Text(
+                  'Invite Members',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Outlined Button: + Generate Invite Code
+              GestureDetector(
+                onTap: _onGenerateOrCopyInviteCode,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.2,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: _previewInviteCode == null
+                      ? Text(
+                          '+ Generate Invite Code',
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.copy_rounded,
+                              size: 16,
+                              color: Color(0xFF0F766E),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Code: $_previewInviteCode  (Tap to copy)',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0F766E),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
               ),
             ],
