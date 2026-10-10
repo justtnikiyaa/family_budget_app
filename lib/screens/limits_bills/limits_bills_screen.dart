@@ -10,8 +10,13 @@ import 'reports_screen.dart';
 
 class LimitsBillsScreen extends StatefulWidget {
   final UserModel? currentUser;
+  final int initialIndex;
 
-  const LimitsBillsScreen({super.key, this.currentUser});
+  const LimitsBillsScreen({
+    super.key,
+    this.currentUser,
+    this.initialIndex = 0,
+  });
 
   @override
   State<LimitsBillsScreen> createState() => _LimitsBillsScreenState();
@@ -25,7 +30,19 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(
+      length: 4,
+      vsync: this,
+      initialIndex: widget.initialIndex.clamp(0, 3),
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant LimitsBillsScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _tabController.animateTo(widget.initialIndex.clamp(0, 3));
+    }
   }
 
   @override
