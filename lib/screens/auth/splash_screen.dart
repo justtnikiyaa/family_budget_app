@@ -45,6 +45,7 @@ class _SplashScreenState extends State<SplashScreen>
   String _statusText = 'Connecting Sri Lankan household node...';
 
   UserModel? _preloadedUserModel;
+  bool _dataLoadComplete = false;
 
   @override
   void initState() {
@@ -212,19 +213,27 @@ class _SplashScreenState extends State<SplashScreen>
 
     _animController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        // Brief victory hold before seamless navigation
+        // Wait for data load + brief victory hold before seamless navigation
         Future.delayed(const Duration(milliseconds: 150), () {
-          _navigateNext();
+          _navigateWhenReady();
         });
       }
     });
   }
 
   void _preloadUserData() async {
+    // Wait a tick for Firebase Auth to restore session from disk
+    await Future.delayed(const Duration(milliseconds: 300));
     final user = _authService.currentUser;
     if (user != null) {
       try {
         _preloadedUserModel = await _authService.getUserModel(user.uid);
+        // Fallback: if Firestore doc missing, build from Auth
+        _preloadedUserModel ??= UserModel(
+          uid: user.uid,
+          email: user.email ?? '',
+          displayName: user.displayName ?? 'Family Member',
+        );
       } catch (_) {
         _preloadedUserModel = UserModel(
           uid: user.uid,
@@ -233,6 +242,7 @@ class _SplashScreenState extends State<SplashScreen>
         );
       }
     }
+    _dataLoadComplete = true;
   }
 
   @override
@@ -240,6 +250,17 @@ class _SplashScreenState extends State<SplashScreen>
     _animController.dispose();
     _pulseController.dispose();
     super.dispose();
+  }
+
+  /// Navigate only after data load is confirmed; poll briefly if still loading
+  void _navigateWhenReady() {
+    if (!mounted) return;
+    if (!_dataLoadComplete) {
+      // Data not yet ready – retry after 200ms (max ~2s total wait)
+      Future.delayed(const Duration(milliseconds: 200), () => _navigateWhenReady());
+      return;
+    }
+    _navigateNext();
   }
 
   void _navigateNext() {

@@ -9,6 +9,9 @@ class BillModel {
   final String? category;
   final String? familyId;
   final String? notes;
+  final String? assignedTo;
+  final String? notifyFrequency;
+  final bool sendReminder;
 
   BillModel({
     required this.id,
@@ -16,9 +19,12 @@ class BillModel {
     required this.amount,
     required this.dueDate,
     this.isPaid = false,
-    this.category = 'Utilities',
+    this.category = 'Utility',
     this.familyId,
     this.notes,
+    this.assignedTo = 'Shared Household',
+    this.notifyFrequency = '1 day before (9:00 AM)',
+    this.sendReminder = true,
   });
 
   Map<String, dynamic> toMap() {
@@ -30,6 +36,9 @@ class BillModel {
       'category': category,
       'familyId': familyId,
       'notes': notes,
+      'assignedTo': assignedTo,
+      'notifyFrequency': notifyFrequency,
+      'sendReminder': sendReminder,
     };
   }
 
@@ -41,9 +50,12 @@ class BillModel {
       amount: (data['amount'] as num?)?.toDouble() ?? 0.0,
       dueDate: (data['dueDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       isPaid: data['isPaid'] ?? false,
-      category: data['category'] ?? 'Utilities',
+      category: data['category'] ?? 'Utility',
       familyId: data['familyId'],
       notes: data['notes'],
+      assignedTo: data['assignedTo'] ?? 'Shared Household',
+      notifyFrequency: data['notifyFrequency'] ?? '1 day before (9:00 AM)',
+      sendReminder: data['sendReminder'] ?? true,
     );
   }
 }

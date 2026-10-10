@@ -5,17 +5,22 @@ import '../../models/limit_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
+import '../main_navigation.dart';
+import 'bills_screen.dart';
 import 'goals_screen.dart';
 import 'reports_screen.dart';
+import 'set_budget_limit_screen.dart';
 
 class LimitsBillsScreen extends StatefulWidget {
   final UserModel? currentUser;
   final int initialIndex;
+  final VoidCallback? onBackToOverview;
 
   const LimitsBillsScreen({
     super.key,
     this.currentUser,
     this.initialIndex = 0,
+    this.onBackToOverview,
   });
 
   static void showAddLimitDialog(BuildContext context, UserModel? currentUser) {
@@ -162,247 +167,495 @@ class LimitsBillsScreen extends StatefulWidget {
   State<LimitsBillsScreen> createState() => _LimitsBillsScreenState();
 }
 
-class _LimitsBillsScreenState extends State<LimitsBillsScreen>
-    with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  final String _selectedMonth = 'FEB 2026';
 
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(
-      length: 4,
-      vsync: this,
-      initialIndex: widget.initialIndex.clamp(0, 3),
+  // Benchmark default categories matching prototype screenshot 1
+  final List<Map<String, dynamic>> _benchmarkBudgets = [
+    {
+      'category': 'Food',
+      'icon': Icons.grid_view_rounded,
+      'spent': 450.0,
+      'limit': 500.0,
+      'iconBg': const Color(0xFFE6F4EA),
+      'iconColor': const Color(0xFF059669),
+    },
+    {
+      'category': 'Entertainment',
+      'icon': Icons.movie_filter_outlined,
+      'spent': 200.0,
+      'limit': 500.0,
+      'iconBg': const Color(0xFFE6F4EA),
+      'iconColor': const Color(0xFF059669),
+    },
+    {
+      'category': 'Fitness',
+      'icon': Icons.fitness_center_rounded,
+      'spent': 200.0,
+      'limit': 500.0,
+      'iconBg': const Color(0xFFF7FEE7),
+      'iconColor': const Color(0xFF65A30D),
+    },
+    {
+      'category': 'Gifts',
+      'icon': Icons.card_giftcard_rounded,
+      'spent': 220.0,
+      'limit': 300.0,
+      'iconBg': const Color(0xFFF3F4F6),
+      'iconColor': const Color(0xFF4B5563),
+    },
+    {
+      'category': 'Fuel',
+      'icon': Icons.local_gas_station_outlined,
+      'spent': 0.0,
+      'limit': 500.0,
+      'iconBg': const Color(0xFFE0F2FE),
+      'iconColor': const Color(0xFF0284C7),
+    },
+  ];
+
+  void _openSetBudgetLimitScreen() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SetBudgetLimitScreen(currentUser: widget.currentUser),
+      ),
     );
-  }
-
-  @override
-  void didUpdateWidget(covariant LimitsBillsScreen oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.initialIndex != widget.initialIndex) {
-      _tabController.animateTo(widget.initialIndex.clamp(0, 3));
+    if (result == true && mounted) {
+      setState(() {});
     }
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  void _navigateToOverview() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else if (widget.onBackToOverview != null) {
+      widget.onBackToOverview!();
+    } else if (widget.currentUser != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(
+            currentUser: widget.currentUser!,
+          ),
+        ),
+      );
+    }
   }
 
-  void _showAddLimitDialog() => LimitsBillsScreen.showAddLimitDialog(context, widget.currentUser);
+  Widget _buildLimitsView() {
+    final currentMonthKey = DateFormat('yyyy-MM').format(DateTime.now());
 
-  void _showAddBillDialog() => LimitsBillsScreen.showAddBillDialog(context, widget.currentUser);
-
-  @override
-  Widget build(BuildContext context) {
-    final currentMonth = DateFormat('yyyy-MM').format(DateTime.now());
-    final currencyFormat = NumberFormat.currency(symbol: 'Rs ', decimalDigits: 2);
-    final dateFormat = DateFormat('MMM dd, yyyy');
-
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Limits, Bills & Goals'),
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          labelColor: AppColors.primary,
-          indicatorColor: AppColors.primary,
-          tabs: const [
-            Tab(text: 'Category Limits', icon: Icon(Icons.speed)),
-            Tab(text: 'Bill Reminders', icon: Icon(Icons.notifications_active_outlined)),
-            Tab(text: 'Goals', icon: Icon(Icons.savings_outlined)),
-            Tab(text: 'Reports', icon: Icon(Icons.bar_chart_outlined)),
-          ],
+    return PopScope(
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _navigateToOverview();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new,
+                    size: 16, color: Color(0xFF0F172A)),
+                onPressed: _navigateToOverview,
+              ),
+            ),
+          ),
+          title: const Text(
+            'Limits',
+          style: TextStyle(
+            color: Color(0xFF0F172A),
+            fontWeight: FontWeight.bold,
+            fontSize: 20,
+            letterSpacing: 0.3,
+          ),
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          // 1. Category Limits Tab
-          Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              heroTag: 'categoryLimitFab',
-              onPressed: _showAddLimitDialog,
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('New Limit', style: TextStyle(color: Colors.white)),
-            ),
-            body: StreamBuilder<List<LimitModel>>(
-              stream: _firestoreService.getLimits(
-                monthYear: currentMonth,
-                familyId: widget.currentUser?.familyId,
-              ),
-              builder: (context, snapshot) {
-                final limits = snapshot.data ?? [];
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'limits_fab',
+        onPressed: _openSetBudgetLimitScreen,
+        backgroundColor: const Color(0xFF065F46),
+        shape: const CircleBorder(),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
+      ),
+      body: StreamBuilder<List<LimitModel>>(
+        stream: _firestoreService.getLimits(
+          monthYear: currentMonthKey,
+          familyId: widget.currentUser?.familyId,
+        ),
+        builder: (context, snapshot) {
+          final firestoreLimits = snapshot.data ?? [];
 
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
+          List<Map<String, dynamic>> displayedBudgets =
+              List.from(_benchmarkBudgets);
+          if (firestoreLimits.isNotEmpty) {
+            final mapped = firestoreLimits.map((l) {
+              return {
+                'category': l.category,
+                'icon': Icons.grid_view_rounded,
+                'spent': l.spentAmount,
+                'limit': l.limitAmount,
+                'iconBg': const Color(0xFFE6F4EA),
+                'iconColor': const Color(0xFF059669),
+              };
+            }).toList();
+            displayedBudgets = mapped;
+          }
 
-                if (limits.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No category limits set for this month.\nTap + to set a spending cap!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: Colors.grey.shade600),
+          return ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            children: [
+              // 1. AT-RISK CATEGORIES Header
+              Row(
+                children: const [
+                  Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
+                  SizedBox(width: 8),
+                  Text(
+                    'AT-RISK CATEGORIES',
+                    style: TextStyle(
+                      color: Color(0xFF64748B),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
                     ),
-                  );
-                }
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: limits.length,
-                  itemBuilder: (context, index) {
-                    final item = limits[index];
-                    final ratio = item.limitAmount > 0
-                        ? (item.spentAmount / item.limitAmount).clamp(0.0, 1.0)
-                        : 0.0;
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
+              // Horizontal At-Risk Cards Row
+              SizedBox(
+                height: 185,
+                child: Row(
+                  children: [
+                    // Card 1: Food (Critical / Dark Theme)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0B1B15), Color(0xFF142E24)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFF0B1B15).withValues(alpha: 0.3),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  item.category,
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF232D23),
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: const Color(0xFFF59E0B)
+                                      .withValues(alpha: 0.3),
                                 ),
-                                Row(
-                                  children: [
-                                    Text(
-                                      '${currencyFormat.format(item.spentAmount)} / ${currencyFormat.format(item.limitAmount)}',
-                                      style: const TextStyle(fontWeight: FontWeight.w600),
+                              ),
+                              child: const Icon(Icons.warning_amber_rounded,
+                                  color: Color(0xFFFBBF24), size: 18),
+                            ),
+                            const Spacer(),
+                            const Text(
+                              'Food',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                const Text(
+                                  '95% Used',
+                                  style: TextStyle(
+                                    color: Color(0xFFFBBF24),
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF3F1D1D),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: const Text(
+                                    'Critical',
+                                    style: TextStyle(
+                                      color: Color(0xFFEF4444),
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                    if (item.id.isNotEmpty) ...[
-                                      const SizedBox(width: 8),
-                                      IconButton(
-                                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(),
-                                        onPressed: () => _firestoreService.deleteLimit(item.id),
-                                      ),
-                                    ],
-                                  ],
+                                  ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 8),
+                            const SizedBox(height: 10),
                             ClipRRect(
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(6),
                               child: LinearProgressIndicator(
-                                value: ratio,
-                                backgroundColor: Colors.grey.shade200,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  ratio > 0.85 ? AppColors.expense : AppColors.primary,
-                                ),
-                                minHeight: 8,
+                                value: 0.95,
+                                backgroundColor: const Color(0xFF1E3A2F),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFFF59E0B)),
+                                minHeight: 6,
                               ),
                             ),
                           ],
                         ),
                       ),
-                    );
-                  },
-                );
-              },
-            ),
-          ),
-
-          // 2. Bill Reminders Tab
-          Scaffold(
-            floatingActionButton: FloatingActionButton.extended(
-              heroTag: 'billReminderFab',
-              onPressed: _showAddBillDialog,
-              backgroundColor: AppColors.primary,
-              icon: const Icon(Icons.add, color: Colors.white),
-              label: const Text('New Bill', style: TextStyle(color: Colors.white)),
-            ),
-            body: StreamBuilder<List<BillModel>>(
-              stream: _firestoreService.getBills(familyId: widget.currentUser?.familyId),
-              builder: (context, snapshot) {
-                final bills = snapshot.data ?? [];
-
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
-                if (bills.isEmpty) {
-                  return Center(
-                    child: Text(
-                      'No upcoming bills registered.',
-                      style: TextStyle(color: Colors.grey.shade600),
                     ),
-                  );
-                }
+                    const SizedBox(width: 14),
 
-                return ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: bills.length,
-                  itemBuilder: (context, index) {
-                    final bill = bills[index];
-
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      child: ListTile(
-                        leading: Icon(
-                          bill.isPaid ? Icons.check_circle : Icons.pending_actions,
-                          color: bill.isPaid ? AppColors.income : AppColors.warning,
+                    // Card 2: Gift (Light Theme)
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFF1F5F9)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.03),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        title: Text(
-                          bill.title,
-                          style: TextStyle(
-                            decoration: bill.isPaid ? TextDecoration.lineThrough : null,
-                            fontWeight: FontWeight.w600,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFD1FAE5),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(Icons.card_giftcard_rounded,
+                                  color: Color(0xFF10B981), size: 18),
+                            ),
+                            const Spacer(),
+                            const Text(
+                              'Gift',
+                              style: TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 17,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            const Text(
+                              '82% Used',
+                              style: TextStyle(
+                                color: Color(0xFF059669),
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: LinearProgressIndicator(
+                                value: 0.82,
+                                backgroundColor: const Color(0xFFF1F5F9),
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                    Color(0xFF10B981)),
+                                minHeight: 6,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 2. ALL BUDGETS Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: const [
+                      Text(
+                        'ALL BUDGETS',
+                        style: TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      SizedBox(width: 6),
+                      Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
+                    ],
+                  ),
+                  Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined,
+                            size: 14, color: Color(0xFF059669)),
+                        const SizedBox(width: 6),
+                        Text(
+                          _selectedMonth,
+                          style: const TextStyle(
+                            color: Color(0xFF0F172A),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
                           ),
                         ),
-                        subtitle: Text('Due: ${dateFormat.format(bill.dueDate)}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              currencyFormat.format(bill.amount),
-                              style: const TextStyle(fontWeight: FontWeight.bold),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Budget Category List Items
+              ...displayedBudgets.map((b) {
+                final double spent = (b['spent'] as num).toDouble();
+                final double limit = (b['limit'] as num).toDouble();
+                final double ratio =
+                    limit > 0 ? (spent / limit).clamp(0.0, 1.0) : 0.0;
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: b['iconBg'] as Color,
+                              borderRadius: BorderRadius.circular(14),
                             ),
-                            Checkbox(
-                              value: bill.isPaid,
-                              onChanged: (val) {
-                                if (val != null) {
-                                  _firestoreService.updateBillStatus(bill.id, val);
-                                }
-                              },
+                            child: Icon(
+                              b['icon'] as IconData,
+                              color: b['iconColor'] as Color,
+                              size: 22,
                             ),
-                            if (bill.id.isNotEmpty)
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey),
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                onPressed: () => _firestoreService.deleteBill(bill.id),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Text(
+                              b['category'] as String,
+                              style: const TextStyle(
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
                               ),
-                          ],
+                            ),
+                          ),
+                          RichText(
+                            text: TextSpan(
+                              children: [
+                                TextSpan(
+                                  text: 'Rs. ${spent.toInt()}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0F172A),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                TextSpan(
+                                  text: ' / Rs. ${limit.toInt()}',
+                                  style: const TextStyle(
+                                    color: Color(0xFF94A3B8),
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(6),
+                        child: LinearProgressIndicator(
+                          value: ratio,
+                          backgroundColor: const Color(0xFFF1F5F9),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            ratio >= 0.8
+                                ? const Color(0xFF059669)
+                                : const Color(0xFF10B981),
+                          ),
+                          minHeight: 7,
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
                 );
-              },
-            ),
-          ),
-
-          // 3. Goals Tab
-          GoalsScreen(currentUser: widget.currentUser),
-
-          // 4. Reports Tab
-          ReportsScreen(currentUser: widget.currentUser),
-        ],
+              }),
+              const SizedBox(height: 70),
+            ],
+          );
+        },
       ),
-    );
+    ),
+  );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.initialIndex == 1) {
+      return BillsScreen(currentUser: widget.currentUser);
+    } else if (widget.initialIndex == 2) {
+      return GoalsScreen(currentUser: widget.currentUser);
+    } else if (widget.initialIndex == 3) {
+      return ReportsScreen(currentUser: widget.currentUser);
+    }
+
+    return _buildLimitsView();
   }
 }

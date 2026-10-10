@@ -30,7 +30,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
 
         final screens = [
           DashboardScreen(currentUser: activeUser),
-          LimitsBillsScreen(currentUser: activeUser, initialIndex: 0),
+          LimitsBillsScreen(
+            currentUser: activeUser,
+            initialIndex: 0,
+            onBackToOverview: () => setState(() => _currentIndex = 0),
+          ),
           ReportsScreen(currentUser: activeUser),
           ProfileScreen(currentUser: activeUser),
         ];
