@@ -14,10 +14,18 @@ class CreateFamilyScreen extends StatefulWidget {
 
 class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
   final TextEditingController _familyNameController = TextEditingController();
+  late final TextEditingController _adminNameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _adminNameController = TextEditingController(text: widget.currentUser.displayName);
+  }
 
   @override
   void dispose() {
     _familyNameController.dispose();
+    _adminNameController.dispose();
     super.dispose();
   }
 
@@ -236,6 +244,87 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
                       padding: EdgeInsets.only(left: 14, right: 10),
                       child: Icon(
                         Icons.home_work_outlined,
+                        color: Color(0xFF64748B),
+                        size: 22,
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 46,
+                      minHeight: 24,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0F766E),
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Field 2: Your Name ( ADMIN )
+              Text(
+                'Your Name ( ADMIN )',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _adminNameController,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF0F172A),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 14, right: 10),
+                      child: Icon(
+                        Icons.person_outline,
                         color: Color(0xFF64748B),
                         size: 22,
                       ),
