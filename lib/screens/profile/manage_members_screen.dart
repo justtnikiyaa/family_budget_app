@@ -5,7 +5,6 @@ import '../../models/family_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
-import '../../utils/constants.dart';
 import 'invite_member_screen.dart';
 
 class ManageMembersScreen extends StatefulWidget {
@@ -1063,94 +1062,6 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
               child: const Text('Remove'),
             ),
           ],
-        );
-      },
-    );
-  }
-
-  void _showInviteOptions(
-    BuildContext context,
-    String? inviteCode,
-  ) {
-    if (inviteCode == null ||
-        inviteCode.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Create or join a family first to invite members.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text(
-                  'Invite a Family Member',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  inviteCode,
-                  style: const TextStyle(
-                    fontSize: 26,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 4,
-                    color: Color(0xFF059669),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                ListTile(
-                  leading: const Icon(Icons.copy),
-                  title: const Text(
-                    'Copy Invite Code',
-                  ),
-                  onTap: () {
-                    Clipboard.setData(
-                      ClipboardData(
-                        text: inviteCode,
-                      ),
-                    );
-
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(context)
-                        .showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Invite code copied!',
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const ListTile(
-                  leading: Icon(
-                    Icons.share_outlined,
-                  ),
-                  title: Text(
-                    'Share Invite Code',
-                  ),
-                ),
-              ],
-            ),
-          ),
         );
       },
     );
