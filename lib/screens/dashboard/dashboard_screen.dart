@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
 import '../limits_bills/add_bill_screen.dart';
 import '../limits_bills/bills_screen.dart';
+import '../limits_bills/goals_screen.dart';
 import '../limits_bills/limits_bills_screen.dart';
 import '../profile/profile_screen.dart';
 import 'create_family_screen.dart';
@@ -964,9 +965,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => LimitsBillsScreen(
+                              builder: (_) => GoalsScreen(
                                 currentUser: _effectiveUser,
-                                initialIndex: 2,
                               ),
                             ),
                           );
@@ -1354,9 +1354,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => LimitsBillsScreen(
+                                builder: (_) => GoalsScreen(
                                   currentUser: _effectiveUser,
-                                  initialIndex: 2,
                                 ),
                               ),
                             );
@@ -1394,9 +1393,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => LimitsBillsScreen(
+                                builder: (_) => GoalsScreen(
                                   currentUser: _effectiveUser,
-                                  initialIndex: 2,
                                 ),
                               ),
                             ),
@@ -1446,7 +1444,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         final progress = topGoal.targetAmount > 0
                             ? (topGoal.savedAmount / topGoal.targetAmount).clamp(0.0, 1.0)
                             : 0.0;
-                        return Container(
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GoalsScreen(currentUser: _effectiveUser),
+                            ),
+                          ),
+                          child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -1481,7 +1486,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                        );
+                        ),
+                      );
                       },
                     ),
                   ],

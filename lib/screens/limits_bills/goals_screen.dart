@@ -6,8 +6,9 @@ import '../../services/firestore_service.dart';
 
 class GoalsScreen extends StatefulWidget {
   final UserModel? currentUser;
+  final VoidCallback? onBackToOverview;
 
-  const GoalsScreen({super.key, this.currentUser});
+  const GoalsScreen({super.key, this.currentUser, this.onBackToOverview});
 
   static void showAddGoalDialog(BuildContext context, UserModel? currentUser, {bool isShared = true}) {
     final titleController = TextEditingController();
@@ -375,6 +376,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
               onPressed: () {
                 if (Navigator.canPop(context)) {
                   Navigator.pop(context);
+                } else if (widget.onBackToOverview != null) {
+                  widget.onBackToOverview!();
                 }
               },
             ),
