@@ -5,6 +5,7 @@ import '../../models/limit_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
+import '../main_navigation.dart';
 import 'bills_screen.dart';
 import 'goals_screen.dart';
 import 'reports_screen.dart';
@@ -13,11 +14,13 @@ import 'set_budget_limit_screen.dart';
 class LimitsBillsScreen extends StatefulWidget {
   final UserModel? currentUser;
   final int initialIndex;
+  final VoidCallback? onBackToOverview;
 
   const LimitsBillsScreen({
     super.key,
     this.currentUser,
     this.initialIndex = 0,
+    this.onBackToOverview,
   });
 
   static void showAddLimitDialog(BuildContext context, UserModel? currentUser) {
@@ -166,7 +169,6 @@ class LimitsBillsScreen extends StatefulWidget {
 
 class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
-  int _selectedTabIndex = 0;
   final String _selectedMonth = 'FEB 2026';
 
   // Benchmark default categories matching prototype screenshot 1
@@ -225,34 +227,56 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
     }
   }
 
+  void _navigateToOverview() {
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else if (widget.onBackToOverview != null) {
+      widget.onBackToOverview!();
+    } else if (widget.currentUser != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MainNavigationScreen(
+            currentUser: widget.currentUser!,
+          ),
+        ),
+      );
+    }
+  }
+
   Widget _buildLimitsView() {
     final currentMonthKey = DateFormat('yyyy-MM').format(DateTime.now());
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8FAFC),
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new,
-                  size: 16, color: Color(0xFF0F172A)),
-              onPressed: () {
-                if (Navigator.canPop(context)) Navigator.pop(context);
-              },
+    return PopScope(
+      canPop: Navigator.canPop(context),
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _navigateToOverview();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8FAFC),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          centerTitle: true,
+          leading: Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back_ios_new,
+                    size: 16, color: Color(0xFF0F172A)),
+                onPressed: _navigateToOverview,
+              ),
             ),
           ),
-        ),
-        title: const Text(
-          'Limits',
+          title: const Text(
+            'Limits',
           style: TextStyle(
             color: Color(0xFF0F172A),
             fontWeight: FontWeight.bold,
@@ -618,52 +642,20 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
           );
         },
       ),
-    );
+    ),
+  );
   }
 
   @override
   Widget build(BuildContext context) {
-    final screens = [
-      _buildLimitsView(),
-      GoalsScreen(currentUser: widget.currentUser),
-      ReportsScreen(currentUser: widget.currentUser),
-      BillsScreen(currentUser: widget.currentUser),
-    ];
+    if (widget.initialIndex == 1) {
+      return BillsScreen(currentUser: widget.currentUser);
+    } else if (widget.initialIndex == 2) {
+      return GoalsScreen(currentUser: widget.currentUser);
+    } else if (widget.initialIndex == 3) {
+      return ReportsScreen(currentUser: widget.currentUser);
+    }
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedTabIndex,
-        children: screens,
-      ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedTabIndex,
-        onDestinationSelected: (index) {
-          setState(() => _selectedTabIndex = index);
-        },
-        indicatorColor: const Color(0xFFD1FAE5),
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.speed_outlined),
-            selectedIcon: Icon(Icons.speed, color: Color(0xFF059669)),
-            label: 'Limits',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.flag_outlined),
-            selectedIcon: Icon(Icons.flag, color: Color(0xFF059669)),
-            label: 'Goal Tracker',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.donut_large_outlined),
-            selectedIcon: Icon(Icons.donut_large, color: Color(0xFF059669)),
-            label: 'Report',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.receipt_long_outlined),
-            selectedIcon: Icon(Icons.receipt_long, color: Color(0xFF059669)),
-            label: 'Bills',
-          ),
-        ],
-      ),
-    );
+    return _buildLimitsView();
   }
 }
