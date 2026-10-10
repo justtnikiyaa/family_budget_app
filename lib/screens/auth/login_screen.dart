@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/page_transitions.dart';
@@ -145,23 +146,24 @@ class _LoginScreenState extends State<LoginScreen>
                 title: const Text('Join with Invite Code', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Enter 6-digit code from household admin'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
+                  UserModel? effectiveUser;
                   if (user != null) {
-                    _authService.getUserModel(user.uid).then((model) {
-                      if (model != null && mounted) {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            page: JoinFamilyScreen(currentUser: model),
-                          ),
-                        );
-                      }
-                    });
-                  } else {
+                    effectiveUser = await _authService.getUserModel(user.uid);
+                  }
+                  effectiveUser ??= UserModel(
+                    uid: user?.uid ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
+                    email: user?.email ?? 'member@smartbudget.lk',
+                    displayName: user?.displayName ?? 'Family Member',
+                    role: 'member',
+                  );
+                  if (mounted) {
                     Navigator.push(
                       context,
-                      SmoothPageRoute(page: const RegisterScreen()),
+                      SmoothPageRoute(
+                        page: JoinFamilyScreen(currentUser: effectiveUser),
+                      ),
                     );
                   }
                 },
@@ -183,23 +185,24 @@ class _LoginScreenState extends State<LoginScreen>
                 title: const Text('Create New Household', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Start fresh and generate an invite code'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
+                  UserModel? effectiveUser;
                   if (user != null) {
-                    _authService.getUserModel(user.uid).then((model) {
-                      if (model != null && mounted) {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            page: CreateFamilyScreen(currentUser: model),
-                          ),
-                        );
-                      }
-                    });
-                  } else {
+                    effectiveUser = await _authService.getUserModel(user.uid);
+                  }
+                  effectiveUser ??= UserModel(
+                    uid: user?.uid ?? 'admin_${DateTime.now().millisecondsSinceEpoch}',
+                    email: user?.email ?? 'admin@smartbudget.lk',
+                    displayName: user?.displayName ?? 'Household Admin',
+                    role: 'admin',
+                  );
+                  if (mounted) {
                     Navigator.push(
                       context,
-                      SmoothPageRoute(page: const RegisterScreen()),
+                      SmoothPageRoute(
+                        page: CreateFamilyScreen(currentUser: effectiveUser),
+                      ),
                     );
                   }
                 },

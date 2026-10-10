@@ -1,9 +1,13 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../models/family_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
 import '../../utils/constants.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_text_field.dart';
+import '../../utils/page_transitions.dart';
+import '../main_navigation.dart';
 
 class CreateFamilyScreen extends StatefulWidget {
   final UserModel currentUser;
@@ -15,21 +19,28 @@ class CreateFamilyScreen extends StatefulWidget {
 }
 
 class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
-  final _nameController = TextEditingController();
-  final _firestoreService = FirestoreService();
+  final TextEditingController _familyNameController = TextEditingController();
+  late final TextEditingController _adminNameController;
+  final FirestoreService _firestoreService = FirestoreService();
+  String? _previewInviteCode;
   bool _isLoading = false;
 
-  @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _handleCreate() async {
-    final name = _nameController.text.trim();
-    if (name.isEmpty) {
+  Future<void> _handleCreateFamily() async {
+    final familyName = _familyNameController.text.trim();
+    if (familyName.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter a family name')),
+        SnackBar(
+          content: const Row(
+            children: [
+              Icon(Icons.error_outline_rounded, color: Colors.white, size: 20),
+              SizedBox(width: 8),
+              Text('Please enter a household name'),
+            ],
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
       );
       return;
     }
@@ -37,111 +48,754 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
     setState(() => _isLoading = true);
 
     try {
+      final adminName = _adminNameController.text.trim();
       final family = await _firestoreService.createFamily(
-        familyName: name,
+        familyName: familyName,
         currentUser: widget.currentUser,
+        customInviteCode: _previewInviteCode,
+        adminDisplayName: adminName.isNotEmpty ? adminName : null,
       );
 
       if (mounted) {
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => AlertDialog(
-            title: const Text('Family Created!'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Text('Share this invitation code with your family members:'),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AppColors.primary),
-                  ),
-                  child: SelectableText(
-                    family.inviteCode,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              ElevatedButton(
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  Navigator.pop(context, true);
-                },
-                child: const Text('Done'),
-              ),
-            ],
-          ),
-        );
+        _showSuccessDialog(family);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error creating family: $e')),
+          SnackBar(
+            content: Text('Error creating family: $e'),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
         );
       }
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _showSuccessDialog(FamilyModel family) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Success checkmark badge
+              Container(
+                width: 64,
+                height: 64,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFCCFBF1),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_rounded,
+                  color: Color(0xFF0F766E),
+                  size: 34,
+                ),
+              ),
+              const SizedBox(height: 18),
+
+              // Title
+              Text(
+                'Family Created!',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              // Subtitle
+              Text(
+                'Your household "${family.name}" is now ready! Share this invitation code with your family members so they can join:',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Invite code display box
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF0FDFA),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFF99F6E4),
+                    width: 1.5,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'FAMILY INVITE CODE',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 1.2,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    SelectableText(
+                      family.inviteCode,
+                      style: GoogleFonts.inter(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 6,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Copy button
+              OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: family.inviteCode));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Row(
+                        children: [
+                          const Icon(Icons.check_circle_outline, color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Text('Invite code ${family.inviteCode} copied!'),
+                        ],
+                      ),
+                      backgroundColor: const Color(0xFF0F766E),
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFF0F766E),
+                  side: const BorderSide(color: Color(0xFFCBD5E1)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  minimumSize: const Size.fromHeight(44),
+                ),
+                icon: const Icon(Icons.copy_rounded, size: 18),
+                label: Text(
+                  'Copy Code',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Done / Go to Dashboard button
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  final adminName = _adminNameController.text.trim();
+                  final updatedUser = widget.currentUser.copyWith(
+                    displayName: adminName.isNotEmpty ? adminName : widget.currentUser.displayName,
+                    familyId: family.id,
+                    role: 'admin',
+                  );
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    SmoothPageRoute(
+                      page: MainNavigationScreen(currentUser: updatedUser),
+                    ),
+                    (route) => false,
+                  );
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0F172A),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                  minimumSize: const Size.fromHeight(48),
+                ),
+                child: Text(
+                  'Go to Dashboard',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _generateRandomCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final random = Random();
+    return List.generate(6, (index) => chars[random.nextInt(chars.length)]).join();
+  }
+
+  void _onGenerateOrCopyInviteCode() {
+    if (_previewInviteCode == null) {
+      final code = _generateRandomCode();
+      setState(() {
+        _previewInviteCode = code;
+      });
+      Clipboard.setData(ClipboardData(text: code));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invite code $code generated & copied to clipboard!'),
+          backgroundColor: const Color(0xFF0F766E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    } else {
+      Clipboard.setData(ClipboardData(text: _previewInviteCode!));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Invite code $_previewInviteCode copied to clipboard!'),
+          backgroundColor: const Color(0xFF0F766E),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      );
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _adminNameController = TextEditingController(text: widget.currentUser.displayName);
+  }
+
+  @override
+  void dispose() {
+    _familyNameController.dispose();
+    _adminNameController.dispose();
+    super.dispose();
+  }
+
+  void _showHelpDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Row(
+          children: [
+            Icon(Icons.help_outline_rounded, color: Color(0xFF0F766E)),
+            SizedBox(width: 10),
+            Text(
+              'Create Family Help',
+              style: TextStyle(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F172A),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Creating a family group lets you set up a shared household budget, track collective expenses, and invite other members with a private invite code.\n\nAs the creator, you will automatically be assigned as the household Admin.',
+          style: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text(
+              'Got It',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF0F766E),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Create Family')),
+      backgroundColor: const Color(0xFFFAF8FF).withValues(alpha: 0.96),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => FocusScope.of(context).unfocus(),
+          child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
-              CircleAvatar(
-                radius: 40,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.15),
-                child: const Icon(Icons.roofing_rounded, size: 40, color: AppColors.primary),
-              ),
-              const SizedBox(height: 24),
-              Text(
-                'Start Your Family Hub',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
+              // Top Navigation Bar
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  // Circular Back Button (<)
+                  GestureDetector(
+                    onTap: () => Navigator.maybePop(context),
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.chevron_left_rounded,
+                        size: 26,
+                        color: Color(0xFF1E293B),
+                      ),
                     ),
+                  ),
+
+                  // Center Pill Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x06000000),
+                          blurRadius: 8,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(5),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F766E),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.cottage_rounded,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          AppConstants.appName,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Circular Help Icon (?)
+                  GestureDetector(
+                    onTap: _showHelpDialog,
+                    child: Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 8,
+                            offset: Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.help_outline_rounded,
+                        size: 20,
+                        color: Color(0xFF64748B),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 32),
+
+              // Header Section
+              Text(
+                'Create Family',
+                style: GoogleFonts.inter(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.5,
+                  height: 1.2,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
-                'Create a shared space to manage household expenses, bills, and joint savings goals together.',
-                textAlign: TextAlign.center,
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                'Set up your shared household budget',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                  fontWeight: FontWeight.w400,
+                ),
               ),
+
               const SizedBox(height: 32),
-              CustomTextField(
-                controller: _nameController,
-                label: 'Family Name (e.g. Silva Family)',
-                prefixIcon: Icons.home_outlined,
+
+              // Field 1: HouseHold Name
+              Text(
+                'HouseHold Name',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _familyNameController,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF0F172A),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'e.g.  Jayawardena Family',
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 14, right: 10),
+                      child: Icon(
+                        Icons.home_work_outlined,
+                        color: Color(0xFF64748B),
+                        size: 22,
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 46,
+                      minHeight: 24,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0F766E),
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              // Field 2: Your Name ( ADMIN )
+              Text(
+                'Your Name ( ADMIN )',
+                style: GoogleFonts.inter(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x04000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: TextField(
+                  controller: _adminNameController,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF0F172A),
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Enter your name',
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
+                      color: const Color(0xFF94A3B8),
+                    ),
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 14, right: 10),
+                      child: Icon(
+                        Icons.person_outline,
+                        color: Color(0xFF64748B),
+                        size: 22,
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 46,
+                      minHeight: 24,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFCBD5E1),
+                        width: 1.2,
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF0F766E),
+                        width: 1.6,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Invite Members Section
+              Center(
+                child: Text(
+                  'Invite Members',
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0F172A),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              // Outlined Button: + Generate Invite Code
+              GestureDetector(
+                onTap: _onGenerateOrCopyInviteCode,
+                child: Container(
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.2,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: _previewInviteCode == null
+                      ? Text(
+                          '+ Generate Invite Code',
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.copy_rounded,
+                              size: 16,
+                              color: Color(0xFF0F766E),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Code: $_previewInviteCode  (Tap to copy)',
+                              style: GoogleFonts.inter(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF0F766E),
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+
+              const SizedBox(height: 32),
+
+              // Primary Action Button
+              _PrimaryActionButton(
+                text: 'Create Family',
+                isLoading: _isLoading,
+                onPressed: _handleCreateFamily,
               ),
               const SizedBox(height: 24),
-              CustomButton(
-                text: 'Create Family Group',
-                isLoading: _isLoading,
-                onPressed: _handleCreate,
+            ],
+          ),
+        ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryActionButton extends StatefulWidget {
+  final String text;
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  const _PrimaryActionButton({
+    required this.text,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  State<_PrimaryActionButton> createState() => _PrimaryActionButtonState();
+}
+
+class _PrimaryActionButtonState extends State<_PrimaryActionButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.isLoading ? null : (_) => _controller.forward(),
+      onTapUp: widget.isLoading
+          ? null
+          : (_) {
+              _controller.reverse();
+              widget.onPressed();
+            },
+      onTapCancel: widget.isLoading ? null : () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F766E),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F766E).withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
               ),
             ],
           ),
+          alignment: Alignment.center,
+          child: widget.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  widget.text,
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
