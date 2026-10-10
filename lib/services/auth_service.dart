@@ -79,7 +79,9 @@ class AuthService {
       });
       userCred = await _auth.signInWithPopup(googleProvider);
     } else {
-      final GoogleSignIn googleSignIn = GoogleSignIn();
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: '276027777653-maiisebii3hk7o5fub6763hi2qvitqro.apps.googleusercontent.com',
+      );
       try {
         await googleSignIn.signOut();
       } catch (_) {}
