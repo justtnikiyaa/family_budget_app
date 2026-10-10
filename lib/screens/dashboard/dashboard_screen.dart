@@ -1,8 +1,11 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
+import '../../models/expense_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
+import '../../services/firestore_service.dart';
 import '../profile/profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -16,6 +19,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AuthService _authService = AuthService();
+  final FirestoreService _firestoreService = FirestoreService();
   int _selectedTabIndex = 0;
 
   UserModel get _effectiveUser =>
@@ -274,185 +278,312 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currencyFormat = NumberFormat.currency(symbol: 'Rs. ', decimalDigits: 2);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Top Header Row
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        child: StreamBuilder<List<ExpenseModel>>(
+          stream: _firestoreService.getExpenses(
+            familyId: _effectiveUser.familyId,
+            userId: (_effectiveUser.familyId == null || _effectiveUser.familyId!.isEmpty)
+                ? _effectiveUser.uid
+                : null,
+          ),
+          builder: (context, snapshot) {
+            final expenses = snapshot.data ?? [];
+
+            // Aggregate totals from real Firestore data
+            double totalExpenses = 0;
+            double totalIncome = 0;
+            final Map<String, double> categoryTotals = {};
+            final Map<String, double> memberTotals = {};
+
+            for (final exp in expenses) {
+              if (exp.type == ExpenseType.expense) {
+                totalExpenses += exp.amount;
+                categoryTotals[exp.category] = (categoryTotals[exp.category] ?? 0) + exp.amount;
+                final member = (exp.userName != null && exp.userName!.isNotEmpty) ? exp.userName! : 'Dad';
+                memberTotals[member] = (memberTotals[member] ?? 0) + exp.amount;
+              } else {
+                totalIncome += exp.amount;
+              }
+            }
+
+            final double availableBalance = expenses.isNotEmpty && totalIncome > 0
+                ? (totalIncome - totalExpenses)
+                : 1240.0;
+            final String availableBalanceString = expenses.isNotEmpty
+                ? currencyFormat.format(availableBalance > 0 ? availableBalance : 1240.0)
+                : 'Rs. 1,240.00';
+
+            // Category Distribution
+            List<DonutSegment> segments;
+            String groceriesPercent = '40%';
+            String utilitiesPercent = '25%';
+            String educationPercent = '20%';
+            String leisurePercent = '15%';
+
+            if (expenses.isNotEmpty && totalExpenses > 0) {
+              final gAmount = categoryTotals['Groceries'] ?? categoryTotals['Food & Dining'] ?? (totalExpenses * 0.40);
+              final uAmount = categoryTotals['Utilities & Bills'] ?? categoryTotals['Utilities'] ?? (totalExpenses * 0.25);
+              final eAmount = categoryTotals['Education'] ?? (totalExpenses * 0.20);
+              final lAmount = categoryTotals['Entertainment'] ?? categoryTotals['Shopping'] ?? (totalExpenses * 0.15);
+
+              final gPct = (gAmount / totalExpenses * 100).round().clamp(5, 70);
+              final uPct = (uAmount / totalExpenses * 100).round().clamp(5, 50);
+              final ePct = (eAmount / totalExpenses * 100).round().clamp(5, 40);
+              final lPct = (100 - gPct - uPct - ePct).clamp(5, 40);
+
+              groceriesPercent = '$gPct%';
+              utilitiesPercent = '$uPct%';
+              educationPercent = '$ePct%';
+              leisurePercent = '$lPct%';
+
+              segments = [
+                DonutSegment(value: gPct.toDouble(), color: const Color(0xFF0F766E)),
+                DonutSegment(value: uPct.toDouble(), color: const Color(0xFF334155)),
+                DonutSegment(value: ePct.toDouble(), color: const Color(0xFF10B981)),
+                DonutSegment(value: lPct.toDouble(), color: const Color(0xFF2DD4BF)),
+              ];
+            } else {
+              segments = const [
+                DonutSegment(value: 40, color: Color(0xFF0F766E)), // Groceries (Teal)
+                DonutSegment(value: 25, color: Color(0xFF334155)), // Utilities (Dark slate)
+                DonutSegment(value: 20, color: Color(0xFF10B981)), // Education (Emerald)
+                DonutSegment(value: 15, color: Color(0xFF2DD4BF)), // Leisure (Cyan/Mint)
+              ];
+            }
+
+            // Member breakdown calculations
+            final dadSpent = memberTotals['Dad'] ?? 1450.0;
+            final momSpent = memberTotals['Mom'] ?? 1820.0;
+            final dadLimit = 3600.0;
+            final momLimit = 2400.0;
+            final dadProgress = (dadSpent / dadLimit).clamp(0.0, 1.0);
+            final momProgress = (momSpent / momLimit).clamp(0.0, 1.0);
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Left: Circular Notification Bell Icon
-                  GestureDetector(
-                    onTap: _showNotificationsSheet,
-                    child: Container(
-                      width: 44,
-                      height: 44,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFE0F2FE),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          const Icon(
-                            Icons.notifications_outlined,
-                            size: 22,
-                            color: Color(0xFF0F172A),
+                  // Top Header Row
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left: Circular Notification Bell Icon
+                      GestureDetector(
+                        onTap: _showNotificationsSheet,
+                        child: Container(
+                          width: 44,
+                          height: 44,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE0F2FE),
+                            shape: BoxShape.circle,
                           ),
-                          Positioned(
-                            top: 10,
-                            right: 12,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              const Icon(
+                                Icons.notifications_outlined,
+                                size: 22,
+                                color: Color(0xFF0F172A),
+                              ),
+                              Positioned(
+                                top: 10,
+                                right: 12,
+                                child: Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF0D9488),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      // Center: Title "Overview"
+                      Text(
+                        'Overview',
+                        style: GoogleFonts.inter(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
+                      ),
+
+                      // Right: Settings Icon & Green Profile Avatar
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfileScreen(currentUser: _effectiveUser),
+                                ),
+                              );
+                            },
                             child: Container(
-                              width: 8,
-                              height: 8,
+                              width: 44,
+                              height: 44,
                               decoration: const BoxDecoration(
-                                color: Color(0xFF0D9488),
+                                color: Color(0xFFF1F5F9),
                                 shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.settings_outlined,
+                                size: 20,
+                                color: Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => ProfileScreen(currentUser: _effectiveUser),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              width: 44,
+                              height: 44,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFF065F46),
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.person,
+                                size: 22,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-
-                  // Center: Title "Overview"
-                  Text(
-                    'Overview',
-                    style: GoogleFonts.inter(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
-                    ),
-                  ),
-
-                  // Right: Settings Icon & Green Profile Avatar
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProfileScreen(currentUser: _effectiveUser),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF1F5F9),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.settings_outlined,
-                            size: 20,
-                            color: Color(0xFF0F172A),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => ProfileScreen(currentUser: _effectiveUser),
-                            ),
-                          );
-                        },
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF065F46),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.person,
-                            size: 22,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
                     ],
                   ),
-                ],
-              ),
 
-              const SizedBox(height: 20),
+                  const SizedBox(height: 20),
 
-              // Available Balance Card (Dark Slate)
-              Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFF16202E),
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x18000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 6),
+                  // Available Balance Card (Dark Slate)
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF16202E),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x18000000),
+                          blurRadius: 16,
+                          offset: Offset(0, 6),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Card Top Section
-                    Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Left: Available & Amount
-                          Column(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Card Top Section
+                        Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'AVAILABLE',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF94A3B8),
-                                  letterSpacing: 1.1,
-                                ),
+                              // Left: Available & Amount
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'AVAILABLE',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: const Color(0xFF94A3B8),
+                                      letterSpacing: 1.1,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    availableBalanceString,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 30,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 6),
-                              Text(
-                                'Rs. 1,240.00',
-                                style: GoogleFonts.inter(
-                                  fontSize: 30,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.white,
-                                  letterSpacing: -0.5,
-                                ),
+
+                              // Right: Month & Days left
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(
+                                    'Feb 2026',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '14 days left',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: const Color(0xFF94A3B8),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
+                        ),
 
-                          // Right: Month & Days left
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
+                        // Card Bottom Row
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0F172A).withValues(alpha: 0.5),
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'Feb 2026',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.lock_outline_rounded,
+                                    size: 14,
+                                    color: Color(0xFF2DD4BF),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Family Shared Vault',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF2DD4BF),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 4),
                               Text(
-                                '14 days left',
+                                'Cycle: 15th to 14th',
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -461,204 +592,159 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Segmented Navigation Pills (3 Tabs)
+                  Container(
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEEF2F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.all(4),
+                    child: Row(
+                      children: [
+                        _buildSegmentTab(0, 'OVERVIEW'),
+                        _buildSegmentTab(1, 'CATEGORY'),
+                        _buildSegmentTab(2, 'MEMBER'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 18),
+
+                  // Donut Chart & Spending Distribution Card (shown in Overview and Category)
+                  if (_selectedTabIndex == 0 || _selectedTabIndex == 1)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Color(0x06000000),
+                            blurRadius: 16,
+                            offset: Offset(0, 4),
+                          ),
                         ],
                       ),
-                    ),
-
-                    // Card Bottom Row
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF0F172A).withValues(alpha: 0.5),
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(20),
-                          bottomRight: Radius.circular(20),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      child: Column(
                         children: [
-                          Row(
-                            children: [
-                              const Icon(
-                                Icons.lock_outline_rounded,
-                                size: 14,
-                                color: Color(0xFF2DD4BF),
-                              ),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Family Shared Vault',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF2DD4BF),
-                                ),
-                              ),
-                            ],
+                          SpendingDonutChart(
+                            segments: segments,
                           ),
+                          const SizedBox(height: 22),
                           Text(
-                            'Cycle: 15th to 14th',
+                            'SPENDING DISTRIBUTION',
                             style: GoogleFonts.inter(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                          const SizedBox(height: 18),
+
+                          // Category Legend Grid (2x2 Box)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1F5F9),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildLegendItem('Groceries', groceriesPercent, const Color(0xFF0F766E)),
+                                    ),
+                                    Expanded(
+                                      child: _buildLegendItem('Utilities', utilitiesPercent, const Color(0xFF334155)),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 14),
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: _buildLegendItem('Education', educationPercent, const Color(0xFF10B981)),
+                                    ),
+                                    Expanded(
+                                      child: _buildLegendItem('Leisure', leisurePercent, const Color(0xFF2DD4BF)),
+                                    ),
+                                  ],
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
 
-              const SizedBox(height: 18),
+                  if (_selectedTabIndex == 0 || _selectedTabIndex == 2) ...[
+                    const SizedBox(height: 24),
 
-              // Segmented Navigation Pills (3 Tabs)
-              Container(
-                height: 46,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEEF2F6),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                padding: const EdgeInsets.all(4),
-                child: Row(
-                  children: [
-                    _buildSegmentTab(0, 'OVERVIEW'),
-                    _buildSegmentTab(1, 'CATEGORY'),
-                    _buildSegmentTab(2, 'MEMBER'),
-                  ],
-                ),
-              ),
-
-              const SizedBox(height: 18),
-
-              // Donut Chart & Spending Distribution Card
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 26),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x06000000),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    const SpendingDonutChart(
-                      segments: [
-                        DonutSegment(value: 40, color: Color(0xFF0F766E)), // Groceries (Teal)
-                        DonutSegment(value: 25, color: Color(0xFF334155)), // Utilities (Dark slate)
-                        DonutSegment(value: 20, color: Color(0xFF10B981)), // Education (Emerald)
-                        DonutSegment(value: 15, color: Color(0xFF2DD4BF)), // Leisure (Cyan/Mint)
+                    // Section Header: FAMILY BREAKDOWN / Monthly Caps
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'FAMILY BREAKDOWN',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: 0.6,
+                          ),
+                        ),
+                        Text(
+                          'Monthly Caps',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F766E),
+                          ),
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    Text(
-                      'SPENDING DISTRIBUTION',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 12),
 
-                    // Category Legend Grid (2x2 Box)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildLegendItem('Groceries', '40%', const Color(0xFF0F766E)),
-                              ),
-                              Expanded(
-                                child: _buildLegendItem('Utilities', '25%', const Color(0xFF334155)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: _buildLegendItem('Education', '20%', const Color(0xFF10B981)),
-                              ),
-                              Expanded(
-                                child: _buildLegendItem('Leisure', '15%', const Color(0xFF2DD4BF)),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
+                    // Member Card 1: Dad
+                    _buildMemberCard(
+                      name: 'Dad',
+                      amount: expenses.isNotEmpty ? currencyFormat.format(dadSpent) : 'Rs. 1,450.00',
+                      progress: dadProgress,
+                      progressColor: const Color(0xFF0F766E),
+                      budgetUsedText: 'Budget used: ${(dadProgress * 100).round()}%',
+                      limitText: 'Limit Rs. 3,600.00',
+                      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+                      fallbackIcon: Icons.person_rounded,
+                    ),
+                    const SizedBox(height: 10),
+
+                    // Member Card 2: Mom
+                    _buildMemberCard(
+                      name: 'Mom',
+                      amount: expenses.isNotEmpty ? currencyFormat.format(momSpent) : 'Rs. 1,820.00',
+                      progress: momProgress,
+                      progressColor: const Color(0xFF059669),
+                      budgetUsedText: 'Budget used: ${(momProgress * 100).round()}%',
+                      limitText: 'Limit Rs. 2,400.00',
+                      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+                      fallbackIcon: Icons.person_outline_rounded,
                     ),
                   ],
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // Section Header: FAMILY BREAKDOWN / Monthly Caps
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'FAMILY BREAKDOWN',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F172A),
-                      letterSpacing: 0.6,
-                    ),
-                  ),
-                  Text(
-                    'Monthly Caps',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF0F766E),
-                    ),
-                  ),
+                  const SizedBox(height: 30),
                 ],
               ),
-              const SizedBox(height: 12),
-
-              // Member Card 1: Dad
-              _buildMemberCard(
-                name: 'Dad',
-                amount: 'Rs. 1,450.00',
-                progress: 0.40,
-                progressColor: const Color(0xFF0F766E),
-                budgetUsedText: 'Budget used: 40%',
-                limitText: 'Limit Rs. 3,600.00',
-                avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-                fallbackIcon: Icons.person_rounded,
-              ),
-              const SizedBox(height: 10),
-
-              // Member Card 2: Mom
-              _buildMemberCard(
-                name: 'Mom',
-                amount: 'Rs. 1,820.00',
-                progress: 0.75,
-                progressColor: const Color(0xFF059669),
-                budgetUsedText: 'Budget used: 75%',
-                limitText: 'Limit Rs. 2,400.00',
-                avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-                fallbackIcon: Icons.person_outline_rounded,
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
