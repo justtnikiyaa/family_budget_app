@@ -18,6 +18,11 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
   final TextEditingController _familyNameController = TextEditingController();
   late final TextEditingController _adminNameController;
   String? _previewInviteCode;
+  bool _isLoading = false;
+
+  void _handleCreateFamily() {
+    // Handled in Firestore integration step
+  }
 
   String _generateRandomCode() {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -460,8 +465,111 @@ class _CreateFamilyScreenState extends State<CreateFamilyScreen> {
                         ),
                 ),
               ),
+
+              const SizedBox(height: 32),
+
+              // Primary Action Button
+              _PrimaryActionButton(
+                text: 'Create Family',
+                isLoading: _isLoading,
+                onPressed: _handleCreateFamily,
+              ),
+              const SizedBox(height: 24),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PrimaryActionButton extends StatefulWidget {
+  final String text;
+  final bool isLoading;
+  final VoidCallback onPressed;
+
+  const _PrimaryActionButton({
+    required this.text,
+    required this.isLoading,
+    required this.onPressed,
+  });
+
+  @override
+  State<_PrimaryActionButton> createState() => _PrimaryActionButtonState();
+}
+
+class _PrimaryActionButtonState extends State<_PrimaryActionButton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 100),
+    );
+    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.97).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: widget.isLoading ? null : (_) => _controller.forward(),
+      onTapUp: widget.isLoading
+          ? null
+          : (_) {
+              _controller.reverse();
+              widget.onPressed();
+            },
+      onTapCancel: widget.isLoading ? null : () => _controller.reverse(),
+      child: AnimatedBuilder(
+        animation: _scaleAnimation,
+        builder: (context, child) => Transform.scale(
+          scale: _scaleAnimation.value,
+          child: child,
+        ),
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F766E),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F766E).withValues(alpha: 0.35),
+                blurRadius: 18,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          alignment: Alignment.center,
+          child: widget.isLoading
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: Colors.white,
+                  ),
+                )
+              : Text(
+                  widget.text,
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
         ),
       ),
     );
