@@ -21,6 +21,8 @@ class QuickAddBottomSheet extends StatefulWidget {
 
 class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
   String _amountText = '0.00';
+  String _selectedCategory = 'Groceries';
+  final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
 
   @override
   Widget build(BuildContext context) {
@@ -138,6 +140,51 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // Suggested Categories
+          const Text(
+            'SUGGESTED CATEGORIES',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              color: Color(0xFF64748B),
+              letterSpacing: 0.8,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: _suggestedCategories.map((cat) {
+              final isSelected = cat == _selectedCategory;
+              return GestureDetector(
+                onTap: () {
+                  setState(() => _selectedCategory = cat);
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF0F172A) : Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.3,
+                    ),
+                  ),
+                  child: Text(
+                    cat,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                      color: isSelected ? Colors.white : const Color(0xFF0F172A),
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
