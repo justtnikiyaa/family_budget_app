@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/page_transitions.dart';
+import '../../widgets/google_icon.dart';
 import '../dashboard/create_family_screen.dart';
 import '../main_navigation.dart';
 import 'join_family_screen.dart';
@@ -27,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void initState() {
@@ -90,6 +93,36 @@ class _LoginScreenState extends State<LoginScreen>
     }
   }
 
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      final userCred = await _authService.signInWithGoogle();
+
+      if (userCred != null && mounted) {
+        final userModel = await _authService.getUserModel(userCred.user!.uid);
+        if (mounted && userModel != null) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            SmoothPageRoute(page: MainNavigationScreen(currentUser: userModel)),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
+    }
+  }
+
   void _showFamilyActionDialog() {
     showModalBottomSheet(
       context: context,
@@ -145,23 +178,24 @@ class _LoginScreenState extends State<LoginScreen>
                 title: const Text('Join with Invite Code', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Enter 6-digit code from household admin'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
+                  UserModel? effectiveUser;
                   if (user != null) {
-                    _authService.getUserModel(user.uid).then((model) {
-                      if (model != null && mounted) {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            page: JoinFamilyScreen(currentUser: model),
-                          ),
-                        );
-                      }
-                    });
-                  } else {
+                    effectiveUser = await _authService.getUserModel(user.uid);
+                  }
+                  effectiveUser ??= UserModel(
+                    uid: user?.uid ?? 'user_${DateTime.now().millisecondsSinceEpoch}',
+                    email: user?.email ?? 'member@smartbudget.lk',
+                    displayName: user?.displayName ?? 'Family Member',
+                    role: 'member',
+                  );
+                  if (mounted) {
                     Navigator.push(
                       context,
-                      SmoothPageRoute(page: const RegisterScreen()),
+                      SmoothPageRoute(
+                        page: JoinFamilyScreen(currentUser: effectiveUser),
+                      ),
                     );
                   }
                 },
@@ -183,23 +217,24 @@ class _LoginScreenState extends State<LoginScreen>
                 title: const Text('Create New Household', style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Start fresh and generate an invite code'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-                onTap: () {
+                onTap: () async {
                   Navigator.pop(ctx);
+                  UserModel? effectiveUser;
                   if (user != null) {
-                    _authService.getUserModel(user.uid).then((model) {
-                      if (model != null && mounted) {
-                        Navigator.push(
-                          context,
-                          SmoothPageRoute(
-                            page: CreateFamilyScreen(currentUser: model),
-                          ),
-                        );
-                      }
-                    });
-                  } else {
+                    effectiveUser = await _authService.getUserModel(user.uid);
+                  }
+                  effectiveUser ??= UserModel(
+                    uid: user?.uid ?? 'admin_${DateTime.now().millisecondsSinceEpoch}',
+                    email: user?.email ?? 'admin@smartbudget.lk',
+                    displayName: user?.displayName ?? 'Household Admin',
+                    role: 'admin',
+                  );
+                  if (mounted) {
                     Navigator.push(
                       context,
-                      SmoothPageRoute(page: const RegisterScreen()),
+                      SmoothPageRoute(
+                        page: CreateFamilyScreen(currentUser: effectiveUser),
+                      ),
                     );
                   }
                 },
@@ -391,7 +426,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                 // Login Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF046A38),
                     foregroundColor: Colors.white,
@@ -419,22 +454,69 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 14),
 
-                // OR Divider Text
-                const Center(
-                  child: Text(
-                    'OR',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: Color(0xFF64748B),
+                // Continue with Google Button
+                OutlinedButton(
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
                     ),
+                    elevation: 0,
                   ),
+                  child: _isGoogleLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF046A38)),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GoogleIcon(size: 20),
+                            SizedBox(width: 12),
+                            Text(
+                              'Continue with Google',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
 
                 const SizedBox(height: 24),
+
+                // OR Divider Text
+                const Row(
+                  children: [
+                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
 
                 // Outlined Button: CREATE A FAMILY OR JOIN AN EXISTING FAMILY
                 OutlinedButton(

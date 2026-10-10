@@ -7,6 +7,8 @@ class LimitModel {
   final double spentAmount;
   final String monthYear; // e.g., '2026-09'
   final String? familyId;
+  final double warningThreshold;
+  final bool notifyHousehold;
 
   LimitModel({
     required this.id,
@@ -15,6 +17,8 @@ class LimitModel {
     this.spentAmount = 0.0,
     required this.monthYear,
     this.familyId,
+    this.warningThreshold = 0.80,
+    this.notifyHousehold = true,
   });
 
   Map<String, dynamic> toMap() {
@@ -24,6 +28,8 @@ class LimitModel {
       'spentAmount': spentAmount,
       'monthYear': monthYear,
       'familyId': familyId,
+      'warningThreshold': warningThreshold,
+      'notifyHousehold': notifyHousehold,
     };
   }
 
@@ -36,6 +42,8 @@ class LimitModel {
       spentAmount: (data['spentAmount'] as num?)?.toDouble() ?? 0.0,
       monthYear: data['monthYear'] ?? '',
       familyId: data['familyId'],
+      warningThreshold: (data['warningThreshold'] as num?)?.toDouble() ?? 0.80,
+      notifyHousehold: data['notifyHousehold'] ?? true,
     );
   }
 }
