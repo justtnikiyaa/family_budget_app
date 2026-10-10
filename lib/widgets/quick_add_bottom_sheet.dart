@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../models/expense_model.dart';
 import '../models/user_model.dart';
+import '../services/firestore_service.dart';
 
 class QuickAddBottomSheet extends StatefulWidget {
   final UserModel currentUser;
@@ -20,15 +22,62 @@ class QuickAddBottomSheet extends StatefulWidget {
 }
 
 class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
+  final FirestoreService _firestoreService = FirestoreService();
   String _amountText = '0.00';
   String _selectedCategory = 'Groceries';
   final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
   final TextEditingController _noteController = TextEditingController();
+  bool _isSaving = false;
 
   @override
   void dispose() {
     _noteController.dispose();
     super.dispose();
+  }
+
+  Future<void> _handleQuickSave() async {
+    final amount = double.tryParse(_amountText) ?? 0.0;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter an amount greater than 0'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      final newExpense = ExpenseModel(
+        id: '',
+        title: _noteController.text.trim().isNotEmpty
+            ? _noteController.text.trim()
+            : _selectedCategory,
+        amount: amount,
+        type: ExpenseType.expense,
+        category: _selectedCategory,
+        date: DateTime.now(),
+        userId: widget.currentUser.uid,
+        userName: widget.currentUser.displayName,
+        familyId: widget.currentUser.familyId,
+        note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
+      );
+
+      await _firestoreService.addExpense(newExpense);
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error adding expense: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   @override
@@ -279,9 +328,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
 
           // Primary CTA Button: QUICK SAVE
           GestureDetector(
-            onTap: () {
-              // Quick save action
-            },
+            onTap: _isSaving ? null : _handleQuickSave,
             child: Container(
               height: 54,
               decoration: BoxDecoration(
@@ -295,16 +342,25 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                   ),
                 ],
               ),
-              child: const Center(
-                child: Text(
-                  'QUICK SAVE',
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.8,
-                  ),
-                ),
+              child: Center(
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text(
+                        'QUICK SAVE',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
               ),
             ),
           ),
