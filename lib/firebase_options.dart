@@ -53,7 +53,6 @@ class DefaultFirebaseOptions {
     projectId: 'family-budget-app-we105',
     storageBucket: 'family-budget-app-we105.firebasestorage.app',
   );
-
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBf4JmQjHs6INBCV3iUGB9_An07DCHx8q8',
     appId: '1:276027777653:ios:1ceeecdd5e393ef6adce3c',
