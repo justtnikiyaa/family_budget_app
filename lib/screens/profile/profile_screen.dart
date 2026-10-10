@@ -3,12 +3,14 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/page_transitions.dart';
 import '../../widgets/custom_button.dart';
 import 'edit_profile_screen.dart';
 import 'profile_details_screen.dart';
 import 'manage_members_screen.dart';
 import 'settings_screen.dart';
 import '../auth/join_family_screen.dart';
+import '../auth/login_screen.dart';
 import '../dashboard/create_family_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -287,6 +289,15 @@ class ProfileScreen extends StatelessWidget {
 
               if (confirm == true) {
                 await authService.signOut();
+                if (context.mounted) {
+                  Navigator.of(context, rootNavigator: true).pushAndRemoveUntil(
+                    SmoothPageRoute(
+                      page: const LoginScreen(),
+                      direction: AxisDirection.right,
+                    ),
+                    (route) => false,
+                  );
+                }
               }
             },
           ),

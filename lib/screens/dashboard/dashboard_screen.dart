@@ -1,15 +1,21 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../models/bill_model.dart';
 import '../../models/expense_model.dart';
+import '../../models/family_model.dart';
 import '../../models/goal_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../limits_bills/add_bill_screen.dart';
+import '../limits_bills/bills_screen.dart';
+import '../limits_bills/goals_screen.dart';
 import '../limits_bills/limits_bills_screen.dart';
 import '../profile/profile_screen.dart';
+import 'create_family_screen.dart';
 import '../../widgets/quick_add_bottom_sheet.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -123,7 +129,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildLegendItem(String title, String percent, Color color) {
+  Widget _buildLegendItem(String title, String percent, Color color, {String? amount}) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -136,27 +142,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ),
         const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.inter(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF0F172A),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              percent,
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF64748B),
+              const SizedBox(height: 2),
+              Text(
+                amount != null ? '$percent ($amount)' : percent,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF64748B),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -189,20 +201,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar
+          // Avatar with clean initial letter fallback
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: SizedBox(
+            child: Container(
               width: 48,
               height: 48,
-              child: Image.network(
-                avatarUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) => Container(
-                  color: const Color(0xFFE2E8F0),
-                  child: Icon(fallbackIcon, color: const Color(0xFF64748B), size: 24),
-                ),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
               ),
+              child: (avatarUrl.isNotEmpty && avatarUrl.startsWith('http'))
+                  ? Image.network(
+                      avatarUrl,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) => Center(
+                        child: Text(
+                          name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF0F766E),
+                          ),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        name.isNotEmpty ? name[0].toUpperCase() : 'U',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F766E),
+                        ),
+                      ),
+                    ),
             ),
           ),
           const SizedBox(width: 14),
@@ -216,18 +249,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      name,
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A),
+                    Expanded(
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF0F172A),
+                        ),
                       ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       amount,
                       style: GoogleFonts.inter(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF0F172A),
                       ),
@@ -264,8 +302,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       limitText,
                       style: GoogleFonts.inter(
                         fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF0F766E),
                       ),
                     ),
                   ],
@@ -278,7 +316,231 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showNotificationsSheet() {
+  Widget _buildFamilyBreakdownSection({
+    required List<ExpenseModel> expenses,
+    required NumberFormat currencyFormat,
+    required double totalExpenses,
+  }) {
+    final familyId = _effectiveUser.familyId;
+
+    if (familyId != null && familyId.isNotEmpty) {
+      return StreamBuilder<FamilyModel?>(
+        stream: _firestoreService.getFamilyStream(familyId),
+        builder: (context, familySnap) {
+          final family = familySnap.data;
+          final memberIds = family?.memberIds ?? [_effectiveUser.uid];
+
+          return StreamBuilder<List<UserModel>>(
+            stream: _firestoreService.getFamilyMembers(memberIds),
+            builder: (context, membersSnap) {
+              final members = (membersSnap.data != null && membersSnap.data!.isNotEmpty)
+                  ? membersSnap.data!
+                  : [_effectiveUser];
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ...members.map((member) {
+                    final isMe = member.uid == _effectiveUser.uid;
+                    final memberName = member.displayName.isNotEmpty
+                        ? (isMe ? '${member.displayName} (You)' : member.displayName)
+                        : (isMe ? 'You' : 'Family Member');
+
+                    final memberSpent = expenses
+                        .where((exp) =>
+                            exp.type == ExpenseType.expense &&
+                            (exp.userId == member.uid ||
+                                (exp.userName != null &&
+                                    exp.userName!.isNotEmpty &&
+                                    exp.userName == member.displayName)))
+                        .fold<double>(0.0, (sum, exp) => sum + exp.amount);
+
+                    final progress = totalExpenses > 0
+                        ? (memberSpent / totalExpenses).clamp(0.0, 1.0)
+                        : 0.0;
+                    final pctText = totalExpenses > 0
+                        ? 'Share: ${(progress * 100).round()}%'
+                        : 'No expenses';
+
+                    final roleBadge = member.role.isNotEmpty
+                        ? (member.role.toLowerCase() == 'admin'
+                            ? 'Household Admin'
+                            : 'Member')
+                        : 'Member';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 10.0),
+                      child: _buildMemberCard(
+                        name: memberName,
+                        amount: currencyFormat.format(memberSpent),
+                        progress: progress,
+                        progressColor: isMe
+                            ? const Color(0xFF0F766E)
+                            : const Color(0xFF0284C7),
+                        budgetUsedText: pctText,
+                        limitText: roleBadge,
+                        avatarUrl: member.photoUrl ?? '',
+                        fallbackIcon: Icons.person_rounded,
+                      ),
+                    );
+                  }),
+                  if (family != null) ...[
+                    const SizedBox(height: 4),
+                    _buildInviteCodeBox(family.inviteCode),
+                  ],
+                ],
+              );
+            },
+          );
+        },
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _buildMemberCard(
+          name: '${_effectiveUser.displayName} (You)',
+          amount: currencyFormat.format(totalExpenses),
+          progress: totalExpenses > 0 ? 1.0 : 0.0,
+          progressColor: const Color(0xFF0F766E),
+          budgetUsedText: totalExpenses > 0 ? 'Total spending' : 'No expenses',
+          limitText: 'Personal Account',
+          avatarUrl: _effectiveUser.photoUrl ?? '',
+          fallbackIcon: Icons.person_rounded,
+        ),
+        const SizedBox(height: 12),
+        _buildConnectFamilyBanner(),
+      ],
+    );
+  }
+
+  Widget _buildInviteCodeBox(String? inviteCode) {
+    if (inviteCode == null || inviteCode.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDFA),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF99F6E4)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.group_add_rounded, color: Color(0xFF0F766E), size: 20),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Household Invite Code',
+                    style: GoogleFonts.inter(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ),
+                  Text(
+                    inviteCode,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1.5,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          TextButton.icon(
+            onPressed: () {
+              Clipboard.setData(ClipboardData(text: inviteCode));
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Invite code $inviteCode copied to clipboard!'),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: const Color(0xFF0F766E),
+                ),
+              );
+            },
+            icon: const Icon(Icons.copy_rounded, size: 16, color: Color(0xFF0F766E)),
+            label: Text(
+              'Copy',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F766E),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectFamilyBanner() {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => CreateFamilyScreen(currentUser: _effectiveUser),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F766E).withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.group_add_rounded, color: Color(0xFF0F766E), size: 22),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Connect Family Members',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Create a household or enter an invite code to share your budget.',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Color(0xFF94A3B8)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showNotificationsSheet(double totalExpenses, double totalIncome, int daysLeft, NumberFormat currencyFormat) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -320,11 +582,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 child: const Icon(Icons.savings_outlined, color: Color(0xFF0F766E), size: 22),
               ),
               title: Text(
-                'Monthly budget pool is healthy',
+                totalExpenses > 0
+                    ? 'Total spent: ${currencyFormat.format(totalExpenses)}'
+                    : 'Monthly budget pool is healthy',
                 style: GoogleFonts.inter(fontWeight: FontWeight.w600, fontSize: 14),
               ),
               subtitle: Text(
-                '14 days remaining in current cycle',
+                '$daysLeft days remaining in current month cycle',
                 style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
               ),
             ),
@@ -361,68 +625,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
               if (exp.type == ExpenseType.expense) {
                 totalExpenses += exp.amount;
                 categoryTotals[exp.category] = (categoryTotals[exp.category] ?? 0) + exp.amount;
-                final member = (exp.userName != null && exp.userName!.isNotEmpty) ? exp.userName! : 'Dad';
+                final member = (exp.userName != null && exp.userName!.isNotEmpty)
+                    ? exp.userName!
+                    : _effectiveUser.displayName;
                 memberTotals[member] = (memberTotals[member] ?? 0) + exp.amount;
               } else {
                 totalIncome += exp.amount;
               }
             }
 
-            final double availableBalance = expenses.isNotEmpty && totalIncome > 0
+            final double availableBalance = (totalIncome > 0 || totalExpenses > 0)
                 ? (totalIncome - totalExpenses)
-                : 1240.0;
-            final String availableBalanceString = expenses.isNotEmpty
-                ? currencyFormat.format(availableBalance > 0 ? availableBalance : 1240.0)
-                : 'Rs. 1,240.00';
+                : 0.0;
+            final String availableBalanceString = currencyFormat.format(availableBalance);
 
-            // Category Distribution
-            List<DonutSegment> segments;
-            String groceriesPercent = '40%';
-            String utilitiesPercent = '25%';
-            String educationPercent = '20%';
-            String leisurePercent = '15%';
+            // Dynamic Category Distribution
+            final categoryColors = [
+              const Color(0xFF0F766E), // Deep Teal
+              const Color(0xFF334155), // Dark Slate
+              const Color(0xFF10B981), // Emerald
+              const Color(0xFF2DD4BF), // Cyan / Mint
+              const Color(0xFFF59E0B), // Amber
+              const Color(0xFF8B5CF6), // Purple
+            ];
+
+            List<DonutSegment> segments = [];
+            List<MapEntry<String, double>> topCategories = [];
 
             if (expenses.isNotEmpty && totalExpenses > 0) {
-              final gAmount = categoryTotals['Groceries'] ?? categoryTotals['Food & Dining'] ?? (totalExpenses * 0.40);
-              final uAmount = categoryTotals['Utilities & Bills'] ?? categoryTotals['Utilities'] ?? (totalExpenses * 0.25);
-              final eAmount = categoryTotals['Education'] ?? (totalExpenses * 0.20);
-              final lAmount = categoryTotals['Entertainment'] ??
-                  categoryTotals['Shopping'] ??
-                  categoryTotals['Leisure'] ??
-                  (totalExpenses * 0.15);
+              final sortedEntries = categoryTotals.entries.toList()
+                ..sort((a, b) => b.value.compareTo(a.value));
+              if (sortedEntries.length <= 4) {
+                topCategories = sortedEntries;
+              } else {
+                topCategories = sortedEntries.take(3).toList();
+                final otherTotal = sortedEntries.skip(3).fold<double>(0.0, (sum, e) => sum + e.value);
+                if (otherTotal > 0) {
+                  topCategories.add(MapEntry('Other', otherTotal));
+                }
+              }
 
-              final gPct = (gAmount / totalExpenses * 100).round().clamp(5, 70);
-              final uPct = (uAmount / totalExpenses * 100).round().clamp(5, 50);
-              final ePct = (eAmount / totalExpenses * 100).round().clamp(5, 40);
-              final lPct = (lAmount / totalExpenses * 100).round().clamp(5, 40);
-
-              groceriesPercent = '$gPct%';
-              utilitiesPercent = '$uPct%';
-              educationPercent = '$ePct%';
-              leisurePercent = '$lPct%';
-
-              segments = [
-                DonutSegment(value: gPct.toDouble(), color: const Color(0xFF0F766E)),
-                DonutSegment(value: uPct.toDouble(), color: const Color(0xFF334155)),
-                DonutSegment(value: ePct.toDouble(), color: const Color(0xFF10B981)),
-                DonutSegment(value: lPct.toDouble(), color: const Color(0xFF2DD4BF)),
-              ];
+              for (int i = 0; i < topCategories.length; i++) {
+                final entry = topCategories[i];
+                final color = categoryColors[i % categoryColors.length];
+                segments.add(DonutSegment(value: entry.value, color: color));
+              }
             } else {
               segments = const [
-                DonutSegment(value: 40, color: Color(0xFF0F766E)), // Groceries (Teal)
-                DonutSegment(value: 25, color: Color(0xFF334155)), // Utilities (Dark slate)
-                DonutSegment(value: 20, color: Color(0xFF10B981)), // Education (Emerald)
-                DonutSegment(value: 15, color: Color(0xFF2DD4BF)), // Leisure (Cyan/Mint)
+                DonutSegment(value: 1, color: Color(0xFFE2E8F0)),
               ];
             }
 
-            // Member breakdown calculations
-            final dadSpent = memberTotals['Dad'] ?? 1450.0;
-            final momSpent = memberTotals['Mom'] ?? 1820.0;
-            final dadLimit = 3600.0;
-            final momLimit = 2400.0;
-            final dadProgress = (dadSpent / dadLimit).clamp(0.0, 1.0);
-            final momProgress = (momSpent / momLimit).clamp(0.0, 1.0);
+            final now = DateTime.now();
+            final currentMonthString = DateFormat('MMM yyyy').format(now);
+            final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+            final daysLeft = (lastDayOfMonth.day - now.day).clamp(0, 31);
 
             return SingleChildScrollView(
               physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
@@ -436,7 +693,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       // Left: Circular Notification Bell Icon
                       GestureDetector(
-                        onTap: _showNotificationsSheet,
+                        onTap: () => _showNotificationsSheet(totalExpenses, totalIncome, daysLeft, currencyFormat),
                         child: Container(
                           width: 44,
                           height: 44,
@@ -593,7 +850,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'Feb 2026',
+                                      currentMonthString,
                                       style: GoogleFonts.inter(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
@@ -602,7 +859,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '14 days left',
+                                      '$daysLeft days left',
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -637,7 +894,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Family Shared Vault',
+                                      (_effectiveUser.familyId != null && _effectiveUser.familyId!.isNotEmpty)
+                                          ? 'Family Shared Vault'
+                                          : 'Personal Budget Vault',
                                       style: GoogleFonts.inter(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
@@ -647,7 +906,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ],
                                 ),
                                 Text(
-                                  'Cycle: 15th to 14th',
+                                  'Cycle: 1st - ${lastDayOfMonth.day}th',
                                   style: GoogleFonts.inter(
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
@@ -691,9 +950,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => LimitsBillsScreen(
+                              builder: (_) => BillsScreen(
                                 currentUser: _effectiveUser,
-                                initialIndex: 1,
                               ),
                             ),
                           );
@@ -707,9 +965,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) => LimitsBillsScreen(
+                              builder: (_) => GoalsScreen(
                                 currentUser: _effectiveUser,
-                                initialIndex: 2,
                               ),
                             ),
                           );
@@ -775,6 +1032,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         children: [
                           SpendingDonutChart(
                             segments: segments,
+                            centerAmount: totalExpenses > 0 ? currencyFormat.format(totalExpenses) : 'Rs. 0.00',
+                            centerLabel: totalExpenses > 0 ? 'Total Spent' : 'No Expenses',
                           ),
                           const SizedBox(height: 22),
                           Text(
@@ -788,39 +1047,71 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                           const SizedBox(height: 18),
 
-                          // Category Legend Grid (2x2 Box)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(16),
-                            ),
-                            child: Column(
-                              children: [
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildLegendItem('Groceries', groceriesPercent, const Color(0xFF0F766E)),
+                          // Dynamic Category Legend Grid
+                          if (topCategories.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Column(
+                                children: [
+                                  for (int i = 0; i < topCategories.length; i += 2) ...[
+                                    if (i > 0) const SizedBox(height: 14),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: _buildLegendItem(
+                                            topCategories[i].key,
+                                            '${((topCategories[i].value / totalExpenses) * 100).round()}%',
+                                            categoryColors[i % categoryColors.length],
+                                            amount: currencyFormat.format(topCategories[i].value),
+                                          ),
+                                        ),
+                                        if (i + 1 < topCategories.length)
+                                          Expanded(
+                                            child: _buildLegendItem(
+                                              topCategories[i + 1].key,
+                                              '${((topCategories[i + 1].value / totalExpenses) * 100).round()}%',
+                                              categoryColors[(i + 1) % categoryColors.length],
+                                              amount: currencyFormat.format(topCategories[i + 1].value),
+                                            ),
+                                          )
+                                        else
+                                          const Spacer(),
+                                      ],
                                     ),
-                                    Expanded(
-                                      child: _buildLegendItem('Utilities', utilitiesPercent, const Color(0xFF334155)),
+                                  ],
+                                ],
+                              ),
+                            )
+                          else
+                            GestureDetector(
+                              onTap: () => QuickAddBottomSheet.show(context, _effectiveUser),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    const Icon(Icons.add_circle_outline_rounded, size: 18, color: Color(0xFF0F766E)),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'No expenses yet. Tap + to add.',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF0F766E),
+                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 14),
-                                Row(
-                                  children: [
-                                    Expanded(
-                                      child: _buildLegendItem('Education', educationPercent, const Color(0xFF10B981)),
-                                    ),
-                                    Expanded(
-                                      child: _buildLegendItem('Leisure', leisurePercent, const Color(0xFF2DD4BF)),
-                                    ),
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
                         ],
                       ),
                     ),
@@ -877,29 +1168,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Member Card 1: Dad
-                    _buildMemberCard(
-                      name: 'Dad',
-                      amount: expenses.isNotEmpty ? currencyFormat.format(dadSpent) : 'Rs. 1,450.00',
-                      progress: dadProgress,
-                      progressColor: const Color(0xFF0F766E),
-                      budgetUsedText: 'Budget used: ${(dadProgress * 100).round()}%',
-                      limitText: 'Limit Rs. 3,600.00',
-                      avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
-                      fallbackIcon: Icons.person_rounded,
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Member Card 2: Mom
-                    _buildMemberCard(
-                      name: 'Mom',
-                      amount: expenses.isNotEmpty ? currencyFormat.format(momSpent) : 'Rs. 1,820.00',
-                      progress: momProgress,
-                      progressColor: const Color(0xFF059669),
-                      budgetUsedText: 'Budget used: ${(momProgress * 100).round()}%',
-                      limitText: 'Limit Rs. 2,400.00',
-                      avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
-                      fallbackIcon: Icons.person_outline_rounded,
+                    // Dynamic Real Family Breakdown
+                    _buildFamilyBreakdownSection(
+                      expenses: expenses,
+                      currencyFormat: currencyFormat,
+                      totalExpenses: totalExpenses,
                     ),
 
                     const SizedBox(height: 24),
@@ -922,9 +1195,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => LimitsBillsScreen(
+                                builder: (_) => BillsScreen(
                                   currentUser: _effectiveUser,
-                                  initialIndex: 1,
                                 ),
                               ),
                             );
@@ -960,7 +1232,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                         if (unpaidBills.isEmpty) {
                           return GestureDetector(
-                            onTap: () => LimitsBillsScreen.showAddBillDialog(context, _effectiveUser),
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AddBillScreen(currentUser: _effectiveUser),
+                              ),
+                            ),
                             child: Container(
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
@@ -1004,7 +1281,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         }
 
                         final nextBill = unpaidBills.first;
-                        return Container(
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BillsScreen(currentUser: _effectiveUser),
+                            ),
+                          ),
+                          child: Container(
                           padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -1045,7 +1329,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                        );
+                        ),
+                      );
                       },
                     ),
 
@@ -1069,9 +1354,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => LimitsBillsScreen(
+                                builder: (_) => GoalsScreen(
                                   currentUser: _effectiveUser,
-                                  initialIndex: 2,
                                 ),
                               ),
                             );
@@ -1109,9 +1393,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => LimitsBillsScreen(
+                                builder: (_) => GoalsScreen(
                                   currentUser: _effectiveUser,
-                                  initialIndex: 2,
                                 ),
                               ),
                             ),
@@ -1161,7 +1444,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         final progress = topGoal.targetAmount > 0
                             ? (topGoal.savedAmount / topGoal.targetAmount).clamp(0.0, 1.0)
                             : 0.0;
-                        return Container(
+                        return GestureDetector(
+                          onTap: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => GoalsScreen(currentUser: _effectiveUser),
+                            ),
+                          ),
+                          child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -1196,7 +1486,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ],
                           ),
-                        );
+                        ),
+                      );
                       },
                     ),
                   ],
@@ -1222,12 +1513,16 @@ class SpendingDonutChart extends StatelessWidget {
   final List<DonutSegment> segments;
   final double size;
   final double strokeWidth;
+  final String? centerAmount;
+  final String centerLabel;
 
   const SpendingDonutChart({
     super.key,
     required this.segments,
     this.size = 170,
     this.strokeWidth = 24,
+    this.centerAmount,
+    this.centerLabel = 'Total Spent',
   });
 
   @override
@@ -1248,30 +1543,53 @@ class SpendingDonutChart extends StatelessWidget {
           Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F766E), width: 2.2),
-                ),
-                child: const Center(
-                  child: Icon(
-                    Icons.pie_chart_outline_rounded,
-                    size: 18,
-                    color: Color(0xFF0F766E),
+              if (centerAmount != null && centerAmount!.isNotEmpty) ...[
+                Text(
+                  centerAmount!,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF0F172A),
+                    letterSpacing: -0.5,
                   ),
                 ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Pool Met',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF475569),
+                const SizedBox(height: 2),
+                Text(
+                  centerLabel,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF64748B),
+                  ),
                 ),
-              ),
+              ] else ...[
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFF0F766E), width: 2.2),
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.pie_chart_outline_rounded,
+                      size: 18,
+                      color: Color(0xFF0F766E),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  centerLabel,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF475569),
+                  ),
+                ),
+              ],
             ],
           ),
         ],

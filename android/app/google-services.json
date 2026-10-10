@@ -12,7 +12,20 @@
           "package_name": "com.example.family_budget_app"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "276027777653-19h1d2bmdbatfgo5imu8kgmdt3uhshni.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.family_budget_app",
+            "certificate_hash": "e51db74fa904c97ca8d5d29945ef6d43f0a5e14a"
+          }
+        },
+        {
+          "client_id": "276027777653-maiisebii3hk7o5fub6763hi2qvitqro.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyBLaDX9T9Jb5lPH1P-wFtDkrumWZJQlSDE"
@@ -20,7 +33,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "276027777653-maiisebii3hk7o5fub6763hi2qvitqro.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "276027777653-46bi3b4a18ce5n4g8f8klh33bhjgg2hc.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.familyBudgetApp"
+              }
+            }
+          ]
         }
       }
     }

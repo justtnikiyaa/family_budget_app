@@ -3,6 +3,7 @@ import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/page_transitions.dart';
+import '../../widgets/google_icon.dart';
 import '../dashboard/create_family_screen.dart';
 import '../main_navigation.dart';
 import 'join_family_screen.dart';
@@ -28,6 +29,7 @@ class _LoginScreenState extends State<LoginScreen>
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  bool _isGoogleLoading = false;
 
   @override
   void initState() {
@@ -88,6 +90,36 @@ class _LoginScreenState extends State<LoginScreen>
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    setState(() => _isGoogleLoading = true);
+
+    try {
+      final userCred = await _authService.signInWithGoogle();
+
+      if (userCred != null && mounted) {
+        final userModel = await _authService.getUserModel(userCred.user!.uid);
+        if (mounted && userModel != null) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            SmoothPageRoute(page: MainNavigationScreen(currentUser: userModel)),
+            (route) => false,
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.expense,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isGoogleLoading = false);
     }
   }
 
@@ -394,7 +426,7 @@ class _LoginScreenState extends State<LoginScreen>
 
                 // Login Button
                 ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF046A38),
                     foregroundColor: Colors.white,
@@ -422,22 +454,69 @@ class _LoginScreenState extends State<LoginScreen>
                         ),
                 ),
 
-                const SizedBox(height: 28),
+                const SizedBox(height: 14),
 
-                // OR Divider Text
-                const Center(
-                  child: Text(
-                    'OR',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: Color(0xFF64748B),
+                // Continue with Google Button
+                OutlinedButton(
+                  onPressed: (_isLoading || _isGoogleLoading) ? null : _handleGoogleSignIn,
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size.fromHeight(54),
+                    backgroundColor: Colors.white,
+                    side: const BorderSide(color: Color(0xFFCBD5E1), width: 1.2),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(28),
                     ),
+                    elevation: 0,
                   ),
+                  child: _isGoogleLoading
+                      ? const SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF046A38)),
+                          ),
+                        )
+                      : const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            GoogleIcon(size: 20),
+                            SizedBox(width: 12),
+                            Text(
+                              'Continue with Google',
+                              style: TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
                 ),
 
                 const SizedBox(height: 24),
+
+                // OR Divider Text
+                const Row(
+                  children: [
+                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        'OR',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          color: Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ),
+                    Expanded(child: Divider(color: Color(0xFFE2E8F0))),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
 
                 // Outlined Button: CREATE A FAMILY OR JOIN AN EXISTING FAMILY
                 OutlinedButton(

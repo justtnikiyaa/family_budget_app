@@ -3,90 +3,22 @@ import 'package:intl/intl.dart';
 import '../../models/goal_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
+import 'add_goal_screen.dart';
 
 class GoalsScreen extends StatefulWidget {
   final UserModel? currentUser;
+  final VoidCallback? onBackToOverview;
 
-  const GoalsScreen({super.key, this.currentUser});
+  const GoalsScreen({super.key, this.currentUser, this.onBackToOverview});
 
   static void showAddGoalDialog(BuildContext context, UserModel? currentUser, {bool isShared = true}) {
-    final titleController = TextEditingController();
-    final targetController = TextEditingController();
-    final categoryController =
-        TextEditingController(text: isShared ? 'PRIORITY' : 'TECH & GEAR');
-    final firestoreService = FirestoreService();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          isShared ? 'Add Shared Goal' : 'Add Personal Goal',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AddGoalScreen(
+          currentUser: currentUser,
+          initialIsShared: isShared,
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: titleController,
-              decoration: const InputDecoration(
-                labelText: 'Goal Title (e.g. House Deposit)',
-                prefixIcon: Icon(Icons.flag_outlined, color: Color(0xFF10B981)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: categoryController,
-              decoration: const InputDecoration(
-                labelText: 'Category (e.g. PRIORITY, EDUCATION)',
-                prefixIcon: Icon(Icons.category_outlined, color: Color(0xFF10B981)),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: targetController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              decoration: const InputDecoration(
-                labelText: 'Target Amount (Rs)',
-                prefixIcon: Icon(Icons.attach_money, color: Color(0xFF10B981)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final title = titleController.text.trim();
-              final cat = categoryController.text.trim().toUpperCase();
-              final target = double.tryParse(targetController.text.trim()) ?? 0.0;
-
-              if (title.isNotEmpty && target > 0) {
-                await firestoreService.addGoal(
-                  GoalModel(
-                    id: '',
-                    title: title.toUpperCase(),
-                    category: cat.isNotEmpty ? cat : (isShared ? 'SHARED' : 'PERSONAL'),
-                    targetAmount: target,
-                    savedAmount: 0.0,
-                    targetDate: DateTime.now().add(const Duration(days: 180)),
-                    familyId: isShared ? currentUser?.familyId : null,
-                    isShared: isShared,
-                  ),
-                );
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Save Goal', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -98,92 +30,257 @@ class GoalsScreen extends StatefulWidget {
 class _GoalsScreenState extends State<GoalsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
 
-  // Seed goals matching prototype screenshot if Firestore collection is fresh
-  final List<GoalModel> _defaultSharedGoals = [
-    GoalModel(
-      id: 'default_shared_1',
-      title: 'HOUSE DEPOSIT',
-      category: 'PRIORITY',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2027, 12, 31),
-      isShared: true,
-    ),
-    GoalModel(
-      id: 'default_shared_2',
-      title: 'KIDS COLLEGE',
-      category: 'EDUCATION',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2028, 6, 30),
-      isShared: true,
-    ),
-  ];
-
-  final List<GoalModel> _defaultPersonalGoals = [
-    GoalModel(
-      id: 'default_personal_1',
-      title: 'NEW LAPTOP',
-      category: 'TECH & GEAR',
-      targetAmount: 200000,
-      savedAmount: 150000,
-      targetDate: DateTime(2026, 11, 30),
-      isShared: false,
-    ),
-  ];
-
   void _showAddGoalDialog({required bool isShared}) {
     GoalsScreen.showAddGoalDialog(context, widget.currentUser, isShared: isShared);
   }
 
   void _showAddSavingsDialog(GoalModel goal) {
-    final amountController = TextEditingController();
+    final amountController = TextEditingController(text: '5000');
+    final currencyFormat = NumberFormat('#,###');
+    final ratio = goal.targetAmount > 0
+        ? (goal.savedAmount / goal.targetAmount).clamp(0.0, 1.0)
+        : 0.0;
+    final percentage = (ratio * 100).toInt();
 
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Contribute to ${goal.title}',
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        content: TextField(
-          controller: amountController,
-          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          decoration: const InputDecoration(
-            labelText: 'Deposit Amount (Rs)',
-            prefixIcon: Icon(Icons.savings_outlined, color: Color(0xFF10B981)),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setSheetState) => Container(
+          padding: EdgeInsets.only(
+            top: 16,
+            left: 20,
+            right: 20,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFCBD5E1),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          goal.category.toUpperCase(),
+                          style: const TextStyle(
+                            color: Color(0xFF0F766E),
+                            fontWeight: FontWeight.bold,
+                            fontSize: 11,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          goal.title,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE6F7ED),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$percentage%',
+                      style: const TextStyle(
+                        color: Color(0xFF10B981),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: ratio,
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF10B981)),
+                  minHeight: 8,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Saved: Rs. ${currencyFormat.format(goal.savedAmount.toInt())}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  Text(
+                    'Target: Rs. ${currencyFormat.format(goal.targetAmount.toInt())}',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                'CONTRIBUTE AMOUNT',
+                style: TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 11,
+                  letterSpacing: 0.6,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: TextField(
+                  controller: amountController,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF0F172A),
+                  ),
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.savings_rounded, color: Color(0xFF10B981)),
+                    prefixText: 'Rs. ',
+                    prefixStyle: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF10B981),
+                    ),
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [1000, 2500, 5000, 10000].map((add) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ActionChip(
+                        label: Text('+Rs. ${currencyFormat.format(add)}'),
+                        labelStyle: const TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600,
+                          color: Color(0xFF0F766E),
+                        ),
+                        backgroundColor: const Color(0xFFE6F4F1),
+                        side: BorderSide.none,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                        onPressed: () {
+                          final current = double.tryParse(amountController.text) ?? 0.0;
+                          amountController.text = (current + add).toInt().toString();
+                          setSheetState(() {});
+                        },
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () async {
+                      Navigator.pop(ctx);
+                      final confirm = await showDialog<bool>(
+                        context: context,
+                        builder: (dCtx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                          title: const Text('Delete Goal?'),
+                          content: Text('Are you sure you want to delete "${goal.title}"?'),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(dCtx, false),
+                              child: const Text('Cancel'),
+                            ),
+                            ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                              onPressed: () => Navigator.pop(dCtx, true),
+                              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (confirm == true) {
+                        await _firestoreService.deleteGoal(goal.id);
+                      }
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded, color: Colors.red),
+                    tooltip: 'Delete Goal',
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0F766E),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(25),
+                          ),
+                        ),
+                        onPressed: () async {
+                          final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
+                          if (amt > 0) {
+                            await _firestoreService.addSavingsToGoal(goal.id, amt);
+                            if (ctx.mounted) Navigator.pop(ctx);
+                          }
+                        },
+                        child: const Text(
+                          'Add Contribution',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF10B981),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            onPressed: () async {
-              final amt = double.tryParse(amountController.text.trim()) ?? 0.0;
-              if (amt > 0) {
-                if (goal.id.startsWith('default_')) {
-                  setState(() {
-                    final target = goal.isShared
-                        ? _defaultSharedGoals.firstWhere((g) => g.id == goal.id)
-                        : _defaultPersonalGoals.firstWhere((g) => g.id == goal.id);
-                    target.toMap(); // update in-memory
-                  });
-                } else {
-                  await _firestoreService.addSavingsToGoal(goal.id, amt);
-                }
-                if (ctx.mounted) Navigator.pop(ctx);
-              }
-            },
-            child: const Text('Contribute', style: TextStyle(color: Colors.white)),
-          ),
-        ],
       ),
     );
   }
@@ -375,6 +472,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
               onPressed: () {
                 if (Navigator.canPop(context)) {
                   Navigator.pop(context);
+                } else if (widget.onBackToOverview != null) {
+                  widget.onBackToOverview!();
                 }
               },
             ),
@@ -396,11 +495,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
           final firestoreGoals = snapshot.data ?? [];
           final sharedGoals = firestoreGoals.where((g) => g.isShared).toList();
           final personalGoals = firestoreGoals.where((g) => !g.isShared).toList();
-
-          final effectiveShared =
-              sharedGoals.isNotEmpty ? sharedGoals : _defaultSharedGoals;
-          final effectivePersonal =
-              personalGoals.isNotEmpty ? personalGoals : _defaultPersonalGoals;
 
           return ListView(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -431,7 +525,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${effectiveShared.length} Active',
+                      '${sharedGoals.length} Active',
                       style: const TextStyle(
                         color: Color(0xFF10B981),
                         fontSize: 11,
@@ -443,11 +537,27 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Shared goals cards
-              ...effectiveShared.map(_buildGoalCard),
+              if (sharedGoals.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No shared family goals yet.\nTap "+ ADD SHARED GOAL" below to start saving together.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                ...sharedGoals.map(_buildGoalCard),
               const SizedBox(height: 6),
 
-              // Add Shared Goal Button
               _buildDashedAddButton(
                 label: 'ADD SHARED GOAL',
                 onTap: () => _showAddGoalDialog(isShared: true),
@@ -480,7 +590,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: Text(
-                      '${effectivePersonal.length} Active',
+                      '${personalGoals.length} Active',
                       style: const TextStyle(
                         color: Color(0xFF10B981),
                         fontSize: 11,
@@ -492,11 +602,27 @@ class _GoalsScreenState extends State<GoalsScreen> {
               ),
               const SizedBox(height: 12),
 
-              // Personal goals cards
-              ...effectivePersonal.map(_buildGoalCard),
+              if (personalGoals.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFF1F5F9)),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'No personal goals yet.\nTap "+ ADD PERSONAL GOAL" below to track your personal savings.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(color: Color(0xFF94A3B8), fontSize: 13),
+                    ),
+                  ),
+                )
+              else
+                ...personalGoals.map(_buildGoalCard),
               const SizedBox(height: 6),
 
-              // Add Personal Goal Button
               _buildDashedAddButton(
                 label: 'ADD PERSONAL GOAL',
                 onTap: () => _showAddGoalDialog(isShared: false),
