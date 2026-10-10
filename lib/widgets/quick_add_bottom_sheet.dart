@@ -309,8 +309,100 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             ),
           ),
           const SizedBox(height: 16),
+
+          // Custom Numeric Keypad
+          _buildNumericKeypad(),
+          const SizedBox(height: 8),
         ],
       ),
+    );
+  }
+
+  void _onKeypadTap(String key) {
+    setState(() {
+      if (key == 'backspace') {
+        if (_amountText.isNotEmpty && _amountText != '0.00') {
+          if (_amountText.length <= 1) {
+            _amountText = '0.00';
+          } else {
+            _amountText = _amountText.substring(0, _amountText.length - 1);
+          }
+        }
+      } else if (key == '.') {
+        if (_amountText == '0.00') {
+          _amountText = '0.';
+        } else if (!_amountText.contains('.')) {
+          _amountText += '.';
+        }
+      } else {
+        if (_amountText == '0.00') {
+          if (key != '0') {
+            _amountText = key;
+          }
+        } else {
+          if (_amountText.contains('.')) {
+            final parts = _amountText.split('.');
+            if (parts.length > 1 && parts[1].length < 2) {
+              _amountText += key;
+            }
+          } else if (_amountText.length < 8) {
+            _amountText += key;
+          }
+        }
+      }
+    });
+  }
+
+  Widget _buildNumericKeypad() {
+    return Column(
+      children: [
+        _buildKeypadRow(['1', '2', '3']),
+        const SizedBox(height: 6),
+        _buildKeypadRow(['4', '5', '6']),
+        const SizedBox(height: 6),
+        _buildKeypadRow(['7', '8', '9']),
+        const SizedBox(height: 6),
+        _buildKeypadRow(['.', '0', 'backspace']),
+      ],
+    );
+  }
+
+  Widget _buildKeypadRow(List<String> keys) {
+    return Row(
+      children: keys.map((key) {
+        return Expanded(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Material(
+              color: Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(12),
+                onTap: () => _onKeypadTap(key),
+                splashColor: const Color(0xFF0F766E).withValues(alpha: 0.12),
+                child: Container(
+                  height: 44,
+                  alignment: Alignment.center,
+                  child: key == 'backspace'
+                      ? const Icon(
+                          Icons.backspace_outlined,
+                          size: 20,
+                          color: Color(0xFF0F172A),
+                        )
+                      : Text(
+                          key,
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF0F172A),
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 }
