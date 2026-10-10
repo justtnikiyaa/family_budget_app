@@ -24,20 +24,21 @@ class QuickAddBottomSheet extends StatefulWidget {
 
 class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
   final FirestoreService _firestoreService = FirestoreService();
-  String _amountText = '0.00';
+  final TextEditingController _amountController = TextEditingController();
+  final TextEditingController _noteController = TextEditingController();
   String _selectedCategory = 'Groceries';
   final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
-  final TextEditingController _noteController = TextEditingController();
   bool _isSaving = false;
 
   @override
   void dispose() {
+    _amountController.dispose();
     _noteController.dispose();
     super.dispose();
   }
 
   Future<void> _handleQuickSave() async {
-    final amount = double.tryParse(_amountText) ?? 0.0;
+    final amount = double.tryParse(_amountController.text.trim()) ?? 0.0;
     if (amount <= 0.0) {
       HapticFeedback.vibrate();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -105,6 +106,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -121,7 +124,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
         top: 12,
         left: 24,
         right: 24,
-        bottom: MediaQuery.of(context).padding.bottom + 20,
+        bottom: bottomInset > 0 ? bottomInset + 16 : MediaQuery.of(context).padding.bottom + 24,
       ),
       child: SingleChildScrollView(
         physics: const BouncingScrollPhysics(),
@@ -207,16 +210,29 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      _amountText,
+                  IntrinsicWidth(
+                    child: TextField(
+                      controller: _amountController,
+                      textAlign: TextAlign.center,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
                       style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w900,
                         color: Color(0xFF0F172A),
                         letterSpacing: -1.0,
                         height: 1.1,
+                      ),
+                      decoration: const InputDecoration(
+                        hintText: '0.00',
+                        hintStyle: TextStyle(
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF0F172A),
+                          letterSpacing: -1.0,
+                        ),
+                        border: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
                       ),
                     ),
                   ),
@@ -269,227 +285,135 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                 );
               }).toList(),
             ),
-          const SizedBox(height: 20),
+            const SizedBox(height: 20),
 
-          // Note & Camera Attachment Row
-          Row(
-            children: [
-              Expanded(
-                child: CustomPaint(
-                  painter: const DashedBorderPainter(
-                    color: Color(0xFFCBD5E1),
-                    strokeWidth: 1.3,
-                    radius: 16.0,
-                  ),
-                  child: Container(
-                    height: 52,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.edit_outlined,
-                          size: 18,
-                          color: Color(0xFF94A3B8),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: _noteController,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF0F172A),
-                              fontWeight: FontWeight.w500,
-                            ),
-                            decoration: const InputDecoration(
-                              hintText: 'Add a note...',
-                              hintStyle: TextStyle(
+            // Note & Camera Attachment Row
+            Row(
+              children: [
+                Expanded(
+                  child: CustomPaint(
+                    painter: const DashedBorderPainter(
+                      color: Color(0xFFCBD5E1),
+                      strokeWidth: 1.3,
+                      radius: 16.0,
+                    ),
+                    child: Container(
+                      height: 52,
+                      padding: const EdgeInsets.symmetric(horizontal: 14),
+                      child: Row(
+                        children: [
+                          const Icon(
+                            Icons.edit_outlined,
+                            size: 18,
+                            color: Color(0xFF94A3B8),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: TextField(
+                              controller: _noteController,
+                              style: const TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF94A3B8),
-                                fontWeight: FontWeight.w400,
+                                color: Color(0xFF0F172A),
+                                fontWeight: FontWeight.w500,
                               ),
-                              border: InputBorder.none,
-                              isDense: true,
-                              contentPadding: EdgeInsets.zero,
+                              decoration: const InputDecoration(
+                                hintText: 'Add a note...',
+                                hintStyle: TextStyle(
+                                  fontSize: 14,
+                                  color: Color(0xFF94A3B8),
+                                  fontWeight: FontWeight.w400,
+                                ),
+                                border: InputBorder.none,
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
                             ),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Receipt camera attachment ready'),
+                        duration: Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F172A),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Color(0x1F0F172A),
+                          blurRadius: 6,
+                          offset: Offset(0, 3),
                         ),
                       ],
                     ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Receipt camera attachment ready'),
-                      duration: Duration(seconds: 1),
-                    ),
-                  );
-                },
-                child: Container(
-                  width: 52,
-                  height: 52,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Color(0x1F0F172A),
-                        blurRadius: 6,
-                        offset: Offset(0, 3),
+                    child: const Center(
+                      child: Icon(
+                        Icons.camera_alt_rounded,
+                        color: Colors.white,
+                        size: 22,
                       ),
-                    ],
-                  ),
-                  child: const Center(
-                    child: Icon(
-                      Icons.camera_alt_rounded,
-                      color: Colors.white,
-                      size: 22,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-
-          // Primary CTA Button: QUICK SAVE
-          GestureDetector(
-            onTap: _isSaving ? null : _handleQuickSave,
-            child: Container(
-              height: 54,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0F766E),
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x400F766E),
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'QUICK SAVE',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-              ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
+            const SizedBox(height: 20),
 
-          // Custom Numeric Keypad
-          _buildNumericKeypad(),
-          const SizedBox(height: 8),
-        ],
-      ),
-    ),
-  );
-}
-
-void _onKeypadTap(String key) {
-  HapticFeedback.lightImpact();
-  setState(() {
-    if (key == 'backspace') {
-      if (_amountText.isNotEmpty && _amountText != '0.00') {
-          if (_amountText.length <= 1) {
-            _amountText = '0.00';
-          } else {
-            _amountText = _amountText.substring(0, _amountText.length - 1);
-          }
-        }
-      } else if (key == '.') {
-        if (_amountText == '0.00') {
-          _amountText = '0.';
-        } else if (!_amountText.contains('.')) {
-          _amountText += '.';
-        }
-      } else {
-        if (_amountText == '0.00') {
-          if (key != '0') {
-            _amountText = key;
-          }
-        } else {
-          if (_amountText.contains('.')) {
-            final parts = _amountText.split('.');
-            if (parts.length > 1 && parts[1].length < 2) {
-              _amountText += key;
-            }
-          } else if (_amountText.length < 8) {
-            _amountText += key;
-          }
-        }
-      }
-    });
-  }
-
-  Widget _buildNumericKeypad() {
-    return Column(
-      children: [
-        _buildKeypadRow(['1', '2', '3']),
-        const SizedBox(height: 6),
-        _buildKeypadRow(['4', '5', '6']),
-        const SizedBox(height: 6),
-        _buildKeypadRow(['7', '8', '9']),
-        const SizedBox(height: 6),
-        _buildKeypadRow(['.', '0', 'backspace']),
-      ],
-    );
-  }
-
-  Widget _buildKeypadRow(List<String> keys) {
-    return Row(
-      children: keys.map((key) {
-        return Expanded(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Material(
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(12),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(12),
-                onTap: () => _onKeypadTap(key),
-                splashColor: const Color(0xFF0F766E).withValues(alpha: 0.12),
-                child: Container(
-                  height: 44,
-                  alignment: Alignment.center,
-                  child: key == 'backspace'
-                      ? const Icon(
-                          Icons.backspace_outlined,
-                          size: 20,
-                          color: Color(0xFF0F172A),
+            // Primary CTA Button: QUICK SAVE
+            GestureDetector(
+              onTap: _isSaving ? null : _handleQuickSave,
+              child: Container(
+                height: 54,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F766E),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x400F766E),
+                      blurRadius: 18,
+                      offset: Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            color: Colors.white,
+                          ),
                         )
-                      : Text(
-                          key,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w700,
-                            color: Color(0xFF0F172A),
+                      : const Text(
+                          'QUICK SAVE',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
                           ),
                         ),
                 ),
               ),
             ),
-          ),
-        );
-      }).toList(),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
     );
   }
 }
