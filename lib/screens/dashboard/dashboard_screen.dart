@@ -15,6 +15,7 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   final AuthService _authService = AuthService();
+  int _selectedTabIndex = 0;
 
   UserModel get _effectiveUser =>
       widget.currentUser ??
@@ -23,6 +24,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
         email: _authService.currentUser?.email ?? '',
         displayName: _authService.currentUser?.displayName ?? 'User',
       );
+
+  Widget _buildSegmentTab(int index, String label) {
+    final isSelected = _selectedTabIndex == index;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => setState(() => _selectedTabIndex = index),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: isSelected ? const Color(0xFF0F766E) : Colors.transparent,
+            borderRadius: BorderRadius.circular(9),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF0F766E).withValues(alpha: 0.25),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Text(
+            label,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: isSelected ? Colors.white : const Color(0xFF475569),
+              letterSpacing: 0.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 
   void _showNotificationsSheet() {
     showModalBottomSheet(
@@ -315,6 +351,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         ],
                       ),
                     ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // Segmented Navigation Pills (3 Tabs)
+              Container(
+                height: 46,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEEF2F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.all(4),
+                child: Row(
+                  children: [
+                    _buildSegmentTab(0, 'OVERVIEW'),
+                    _buildSegmentTab(1, 'CATEGORY'),
+                    _buildSegmentTab(2, 'MEMBER'),
                   ],
                 ),
               ),
