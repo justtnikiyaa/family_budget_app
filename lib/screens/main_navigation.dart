@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../widgets/quick_add_bottom_sheet.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'limits_bills/limits_bills_screen.dart';
 import 'limits_bills/reports_screen.dart';
@@ -39,13 +40,13 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             index: _currentIndex,
             children: screens,
           ),
-          bottomNavigationBar: _buildCustomBottomNavBar(context),
+          bottomNavigationBar: _buildCustomBottomNavBar(context, activeUser),
         );
       },
     );
   }
 
-  Widget _buildCustomBottomNavBar(BuildContext context) {
+  Widget _buildCustomBottomNavBar(BuildContext context, UserModel activeUser) {
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(
@@ -73,12 +74,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         top: false,
         bottom: false,
         child: SizedBox(
-          height: 56,
+          height: 60,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // 1. Goals
+              // 1. Goals (Dashboard Overview)
               _buildNavItem(
                 icon: Icons.account_balance,
                 label: 'Goals',
@@ -94,7 +95,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 onTap: () => setState(() => _currentIndex = 1),
               ),
 
-              // 3. Report
+              // 3. Center Add Action Button
+              _buildCenterAddButton(context, activeUser),
+
+              // 4. Report
               _buildNavItem(
                 icon: Icons.tune,
                 label: 'Report',
@@ -102,7 +106,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 onTap: () => setState(() => _currentIndex = 2),
               ),
 
-              // 4. Preferences
+              // 5. Preferences
               _buildNavItem(
                 icon: Icons.settings_outlined,
                 label: 'Preferences',
@@ -149,6 +153,52 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 color: color,
                 fontSize: 11.5,
                 fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                letterSpacing: -0.2,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCenterAddButton(BuildContext context, UserModel activeUser) {
+    return Expanded(
+      child: InkWell(
+        onTap: () => QuickAddBottomSheet.show(context, activeUser),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0F766E),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF0F766E).withValues(alpha: 0.35),
+                    blurRadius: 8,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.add,
+                color: Colors.white,
+                size: 26,
+              ),
+            ),
+            const SizedBox(height: 3),
+            const Text(
+              'Add',
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
                 letterSpacing: -0.2,
               ),
             ),
