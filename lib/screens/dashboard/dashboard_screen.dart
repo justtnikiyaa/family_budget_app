@@ -61,6 +61,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildLegendItem(String title, String percent, Color color) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(
+            color: color,
+            shape: BoxShape.circle,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0F172A),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              percent,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   void _showNotificationsSheet() {
     showModalBottomSheet(
       context: context,
@@ -409,6 +448,41 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF0F172A),
                         letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+
+                    // Category Legend Grid (2x2 Box)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildLegendItem('Groceries', '40%', const Color(0xFF0F766E)),
+                              ),
+                              Expanded(
+                                child: _buildLegendItem('Utilities', '25%', const Color(0xFF334155)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 14),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: _buildLegendItem('Education', '20%', const Color(0xFF10B981)),
+                              ),
+                              Expanded(
+                                child: _buildLegendItem('Leisure', '15%', const Color(0xFF2DD4BF)),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
                   ],
