@@ -100,6 +100,122 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildMemberCard({
+    required String name,
+    required String amount,
+    required double progress,
+    required Color progressColor,
+    required String budgetUsedText,
+    required String limitText,
+    required String avatarUrl,
+    required IconData fallbackIcon,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
+        border: Border.all(color: const Color(0xFFF1F5F9)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          // Avatar
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 48,
+              height: 48,
+              child: Image.network(
+                avatarUrl,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: const Color(0xFFE2E8F0),
+                  child: Icon(fallbackIcon, color: const Color(0xFF64748B), size: 24),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+
+          // Details & Progress Bar
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Name & Amount Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      name,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                    Text(
+                      amount,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF0F172A),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+
+                // Horizontal Progress Bar
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(4),
+                  child: LinearProgressIndicator(
+                    value: progress.clamp(0.0, 1.0),
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFEEF2F6),
+                    valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+                  ),
+                ),
+                const SizedBox(height: 6),
+
+                // Subtitle Row
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      budgetUsedText,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                    Text(
+                      limitText,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showNotificationsSheet() {
     showModalBottomSheet(
       context: context,
@@ -488,6 +604,59 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ],
                 ),
               ),
+
+              const SizedBox(height: 24),
+
+              // Section Header: FAMILY BREAKDOWN / Monthly Caps
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'FAMILY BREAKDOWN',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F172A),
+                      letterSpacing: 0.6,
+                    ),
+                  ),
+                  Text(
+                    'Monthly Caps',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Member Card 1: Dad
+              _buildMemberCard(
+                name: 'Dad',
+                amount: 'Rs. 1,450.00',
+                progress: 0.40,
+                progressColor: const Color(0xFF0F766E),
+                budgetUsedText: 'Budget used: 40%',
+                limitText: 'Limit Rs. 3,600.00',
+                avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150',
+                fallbackIcon: Icons.person_rounded,
+              ),
+              const SizedBox(height: 10),
+
+              // Member Card 2: Mom
+              _buildMemberCard(
+                name: 'Mom',
+                amount: 'Rs. 1,820.00',
+                progress: 0.75,
+                progressColor: const Color(0xFF059669),
+                budgetUsedText: 'Budget used: 75%',
+                limitText: 'Limit Rs. 2,400.00',
+                avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150',
+                fallbackIcon: Icons.person_outline_rounded,
+              ),
+              const SizedBox(height: 24),
             ],
           ),
         ),
