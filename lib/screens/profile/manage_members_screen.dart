@@ -5,6 +5,7 @@ import '../../models/family_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_strings.dart';
 import 'invite_member_screen.dart';
 
 class ManageMembersScreen extends StatefulWidget {
@@ -372,88 +373,83 @@ class _ManageMembersScreenState extends State<ManageMembersScreen> {
               ),
             ),
 
-            /*
-             * ADD / INVITE MEMBER button is visible only
-             * for the family admin/owner.
-             */
-            if (canManageMembers)
-              Container(
-                padding: const EdgeInsets.fromLTRB(
-                  20,
-                  10,
-                  20,
-                  20,
-                ),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  border: Border(
-                    top: BorderSide(
-                      color: Color(0xFFE8EDF3),
-                    ),
-                  ),
-                ),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 46,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (inviteCode == null ||
-                          inviteCode.isEmpty) {
-                        ScaffoldMessenger.of(context)
-                            .showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Create or join a family first to invite members.',
-                            ),
-                          ),
-                        );
-                        return;
-                      }
-
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              InviteMemberScreen(
-                            inviteCode: inviteCode,
-                          ),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor:
-                          const Color(0xFF0DB58A),
-                      foregroundColor: Colors.white,
-                      elevation: 3,
-                      shadowColor: const Color(0xFF0DB58A)
-                          .withValues(alpha: 0.25),
-                      shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(14),
-                      ),
-                    ),
-                    child: const Row(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.add,
-                          size: 20,
-                        ),
-                        SizedBox(width: 8),
-                        Text(
-                          'ADD/INVITE MEMBER',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
+            // ADD / INVITE MEMBER button - Visible for all family members
+            Container(
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                10,
+                20,
+                20,
+              ),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(
+                  top: BorderSide(
+                    color: Color(0xFFE8EDF3),
                   ),
                 ),
               ),
+              child: SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final code = (inviteCode != null && inviteCode.isNotEmpty)
+                        ? inviteCode
+                        : (family?.inviteCode.isNotEmpty == true
+                            ? family!.inviteCode
+                            : (family?.id ?? ''));
+
+                    if (code.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Create or join a family first to invite members.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InviteMemberScreen(
+                          inviteCode: code,
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F766E),
+                    foregroundColor: Colors.white,
+                    elevation: 3,
+                    shadowColor: const Color(0xFF0F766E).withValues(alpha: 0.25),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.person_add_alt_1_rounded,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        AppStrings.inviteMember.toUpperCase(),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
