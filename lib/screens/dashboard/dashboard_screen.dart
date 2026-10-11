@@ -15,6 +15,7 @@ import '../limits_bills/bills_screen.dart';
 import '../limits_bills/goals_screen.dart';
 import '../limits_bills/limits_bills_screen.dart';
 import '../profile/profile_screen.dart';
+import 'add_income_screen.dart';
 import 'create_family_screen.dart';
 import '../../widgets/quick_add_bottom_sheet.dart';
 
@@ -50,8 +51,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
@@ -68,21 +69,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 19),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 5),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF1E293B),
                 ),
@@ -983,6 +984,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               builder: (_) => LimitsBillsScreen(
                                 currentUser: _effectiveUser,
                                 initialIndex: 3,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildQuickNavButton(
+                        icon: Icons.add_circle_outline_rounded,
+                        label: 'Income',
+                        color: const Color(0xFF10B981),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddIncomeScreen(
+                                currentUser: _effectiveUser,
                               ),
                             ),
                           );

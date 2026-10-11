@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../widgets/quick_add_bottom_sheet.dart';
+import 'dashboard/add_income_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'limits_bills/bills_screen.dart';
 import 'limits_bills/goals_screen.dart';
@@ -255,6 +256,21 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 onTap: () {
                   Navigator.pop(ctx);
                   QuickAddBottomSheet.show(context, activeUser);
+                },
+              ),
+              _buildActionSheetOption(
+                icon: Icons.account_balance_wallet_outlined,
+                color: const Color(0xFF10B981),
+                title: 'Add Income',
+                subtitle: 'Record salary, freelance, business or bonuses',
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddIncomeScreen(currentUser: activeUser),
+                    ),
+                  );
                 },
               ),
               _buildActionSheetOption(
