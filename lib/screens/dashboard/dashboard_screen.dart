@@ -34,6 +34,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final FirestoreService _firestoreService = FirestoreService();
   int _selectedTabIndex = 0;
 
+  @override
+  void initState() {
+    super.initState();
+    _firestoreService.migrateLegacyIncomes();
+  }
+
   UserModel get _effectiveUser =>
       widget.currentUser ??
       UserModel(
@@ -608,7 +614,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<List<ExpenseModel>>(
-          stream: _firestoreService.getExpenses(
+          stream: _firestoreService.getAllTransactions(
             familyId: _effectiveUser.familyId,
             userId: (_effectiveUser.familyId == null || _effectiveUser.familyId!.isEmpty)
                 ? _effectiveUser.uid

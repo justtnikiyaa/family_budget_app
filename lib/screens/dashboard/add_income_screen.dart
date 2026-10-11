@@ -135,7 +135,7 @@ class _AddIncomeScreenState extends State<AddIncomeScreen> {
         note: _noteController.text.trim().isNotEmpty ? _noteController.text.trim() : null,
       );
 
-      await _firestoreService.addExpense(newIncome);
+      await _firestoreService.addIncome(newIncome);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

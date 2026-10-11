@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/bill_model.dart';
@@ -138,6 +139,76 @@ class FirestoreService {
     });
   }
 
+  Stream<List<ExpenseModel>> getIncomes({String? familyId, String? userId}) {
+    Query query = _firestore.collection(AppConstants.incomesCollection);
+
+    if (familyId != null && familyId.isNotEmpty) {
+      query = query.where('familyId', isEqualTo: familyId);
+    } else if (userId != null && userId.isNotEmpty) {
+      query = query.where('userId', isEqualTo: userId);
+    }
+
+    return query.snapshots().map((snapshot) {
+      final list =
+          snapshot.docs.map((doc) => ExpenseModel.fromFirestore(doc)).toList();
+      list.sort((a, b) => b.date.compareTo(a.date));
+      return list;
+    });
+  }
+
+  Stream<List<ExpenseModel>> getAllTransactions({String? familyId, String? userId}) {
+    late StreamController<List<ExpenseModel>> controller;
+    StreamSubscription? expensesSub;
+    StreamSubscription? incomesSub;
+    List<ExpenseModel> expensesList = [];
+    List<ExpenseModel> incomesList = [];
+
+    void emitCombined() {
+      if (!controller.isClosed) {
+        final Map<String, ExpenseModel> map = {};
+        for (final item in expensesList) {
+          map[item.id] = item;
+        }
+        for (final item in incomesList) {
+          map[item.id] = item;
+        }
+        final combined = map.values.toList();
+        combined.sort((a, b) => b.date.compareTo(a.date));
+        controller.add(combined);
+      }
+    }
+
+    controller = StreamController<List<ExpenseModel>>.broadcast(
+      onListen: () {
+        expensesSub = getExpenses(familyId: familyId, userId: userId).listen(
+          (data) {
+            expensesList = data;
+            emitCombined();
+          },
+          onError: (err) {
+            if (!controller.isClosed) controller.addError(err);
+          },
+        );
+
+        incomesSub = getIncomes(familyId: familyId, userId: userId).listen(
+          (data) {
+            incomesList = data;
+            emitCombined();
+          },
+          onError: (_) {
+            emitCombined();
+          },
+        );
+      },
+      onCancel: () {
+        expensesSub?.cancel();
+        incomesSub?.cancel();
+      },
+    );
+
+    return controller.stream;
+  }
+
   Future<void> addExpense(ExpenseModel expense) async {
     await _firestore.collection(AppConstants.expensesCollection).add(expense.toMap());
     if (expense.type == ExpenseType.expense) {
@@ -149,6 +220,26 @@ class FirestoreService {
         familyId: expense.familyId,
       );
     }
+  }
+
+  Future<void> addIncome(ExpenseModel income) async {
+    await _firestore.collection(AppConstants.incomesCollection).add(income.toMap());
+  }
+
+  Future<void> migrateLegacyIncomes() async {
+    try {
+      final snap = await _firestore
+          .collection(AppConstants.expensesCollection)
+          .where('type', isEqualTo: 'income')
+          .get();
+      for (final doc in snap.docs) {
+        await _firestore
+            .collection(AppConstants.incomesCollection)
+            .doc(doc.id)
+            .set(doc.data());
+        await doc.reference.delete();
+      }
+    } catch (_) {}
   }
 
   Future<void> updateLimitSpentForCategory({

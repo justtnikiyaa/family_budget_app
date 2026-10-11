@@ -38,6 +38,7 @@ class AppConstants {
   static const String householdsCollection = 'households';
   static const String familiesCollection = 'households';
   static const String expensesCollection = 'expenses';
+  static const String incomesCollection = 'incomes';
   static const String limitsCollection = 'limits';
   static const String billsCollection = 'bills';
   static const String goalsCollection = 'goals';
