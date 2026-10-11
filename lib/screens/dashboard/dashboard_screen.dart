@@ -19,6 +19,7 @@ import '../profile/profile_screen.dart';
 import 'add_income_screen.dart';
 import 'create_family_screen.dart';
 import '../../widgets/quick_add_bottom_sheet.dart';
+import '../../services/widget_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel? currentUser;
@@ -646,6 +647,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ? (totalIncome - totalExpenses)
                 : 0.0;
             final String availableBalanceString = currencyFormat.format(availableBalance);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              WidgetService.updateWidgetData(
+                available: availableBalanceString,
+                income: currencyFormat.format(totalIncome),
+                spent: currencyFormat.format(totalExpenses),
+              );
+            });
 
             // Dynamic Category Distribution
             final categoryColors = [

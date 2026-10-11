@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Family Budget App</string>
+    <string name="widget_name">Family Budget</string>
+    <string name="widget_description">Displays available balance and monthly budget summary</string>
+</resources>
