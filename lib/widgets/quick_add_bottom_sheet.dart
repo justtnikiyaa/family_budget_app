@@ -6,15 +6,27 @@ import '../services/firestore_service.dart';
 
 class QuickAddBottomSheet extends StatefulWidget {
   final UserModel currentUser;
+  final String? initialCategory;
 
-  const QuickAddBottomSheet({super.key, required this.currentUser});
+  const QuickAddBottomSheet({
+    super.key,
+    required this.currentUser,
+    this.initialCategory,
+  });
 
-  static Future<void> show(BuildContext context, UserModel currentUser) {
+  static Future<void> show(
+    BuildContext context,
+    UserModel currentUser, {
+    String? initialCategory,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => QuickAddBottomSheet(currentUser: currentUser),
+      builder: (_) => QuickAddBottomSheet(
+        currentUser: currentUser,
+        initialCategory: initialCategory,
+      ),
     );
   }
 
@@ -26,9 +38,34 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
-  String _selectedCategory = 'Groceries';
-  final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
+  late String _selectedCategory;
+  final List<String> _suggestedCategories = const [
+    'Fuel',
+    'Groceries',
+    'Lunch',
+    'Coffee',
+    'Transport',
+    'Dining',
+    'Bills',
+    'Shopping',
+    'Health',
+    'Gift',
+  ];
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.initialCategory ?? 'Fuel';
+  }
+
+  List<String> get _displayCategories {
+    final list = List<String>.from(_suggestedCategories);
+    if (!list.contains(_selectedCategory)) {
+      list.insert(0, _selectedCategory);
+    }
+    return list;
+  }
 
   @override
   void dispose() {
@@ -255,7 +292,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _suggestedCategories.map((cat) {
+              children: _displayCategories.map((cat) {
                 final isSelected = cat == _selectedCategory;
                 return GestureDetector(
                   onTap: () {

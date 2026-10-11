@@ -140,6 +140,46 @@ class FirestoreService {
 
   Future<void> addExpense(ExpenseModel expense) async {
     await _firestore.collection(AppConstants.expensesCollection).add(expense.toMap());
+    if (expense.type == ExpenseType.expense) {
+      final monthYear = '${expense.date.year}-${expense.date.month.toString().padLeft(2, '0')}';
+      await updateLimitSpentForCategory(
+        category: expense.category,
+        amount: expense.amount,
+        monthYear: monthYear,
+        familyId: expense.familyId,
+      );
+    }
+  }
+
+  Future<void> updateLimitSpentForCategory({
+    required String category,
+    required double amount,
+    required String monthYear,
+    String? familyId,
+  }) async {
+    try {
+      Query query = _firestore
+          .collection(AppConstants.limitsCollection)
+          .where('monthYear', isEqualTo: monthYear);
+      if (familyId != null && familyId.isNotEmpty) {
+        query = query.where('familyId', isEqualTo: familyId);
+      }
+      final snapshot = await query.get();
+      for (final doc in snapshot.docs) {
+        final limit = LimitModel.fromFirestore(doc);
+        final a = limit.category.trim().toLowerCase();
+        final b = category.trim().toLowerCase();
+        final bool isMatch = a == b ||
+            a.contains(b) ||
+            b.contains(a) ||
+            (a.contains('fuel') && (b.contains('petrol') || b.contains('diesel') || b.contains('gas') || b.contains('transport'))) ||
+            (b.contains('fuel') && (a.contains('petrol') || a.contains('diesel') || a.contains('gas') || a.contains('transport')));
+        if (isMatch) {
+          final newSpent = limit.spentAmount + amount;
+          await doc.reference.update({'spentAmount': newSpent});
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> deleteExpense(String expenseId) async {
