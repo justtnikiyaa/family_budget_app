@@ -20,7 +20,7 @@ class _InviteMemberScreenState
   final TextEditingController _nameController =
       TextEditingController();
 
-  final TextEditingController _contactController =
+  final TextEditingController _emailController =
       TextEditingController();
 
   String _selectedPermission = 'member';
@@ -28,7 +28,7 @@ class _InviteMemberScreenState
   @override
   void dispose() {
     _nameController.dispose();
-    _contactController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -84,26 +84,78 @@ class _InviteMemberScreenState
     }
   }
 
-  void _sendInvitation() {
+  Future<void> _sendInvitation() async {
     final name = _nameController.text.trim();
-    final contact = _contactController.text.trim();
+    final email = _emailController.text.trim();
 
-    if (name.isEmpty || contact.isEmpty) {
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please enter the member name and email/mobile number.',
-          ),
+          content: Text('Please enter the member full name.'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invitation details ready to send.'),
-      ),
+    if (email.isEmpty || !RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address (e.g. member@example.com).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final roleTitle = _selectedPermission == 'admin' ? 'Admin / Co-Owner (Full Access)' : 'Member';
+    final subject = 'Invitation to join our Family Budget (Code: ${widget.inviteCode})';
+    final body = 'Hi $name,\n\n'
+        'You have been invited to join our household budget on the Smart Family Budget App!\n\n'
+        '• Role: $roleTitle\n'
+        '• Household Join Code: ${widget.inviteCode}\n\n'
+        'How to join:\n'
+        '1. Open the Smart Family Budget app on your device.\n'
+        '2. Choose "Join an Existing Family".\n'
+        '3. Enter the code "${widget.inviteCode}" to start budgeting together!\n\n'
+        'Best regards,\nYour Family';
+
+    final emailUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
     );
+
+    try {
+      final opened = await launchUrl(
+        emailUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open default email app.'),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email invitation prepared for $email!'),
+            backgroundColor: const Color(0xFF087F70),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open email client: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -357,7 +409,7 @@ class _InviteMemberScreenState
                       horizontal: 10,
                     ),
                     child: Text(
-                      'OR INVITE VIA CONTACT DETAILS',
+                      'OR INVITE VIA EMAIL',
                       style: TextStyle(
                         fontSize: 9,
                         color: Colors.grey.shade600,
@@ -401,7 +453,7 @@ class _InviteMemberScreenState
                     const SizedBox(height: 12),
 
                     const Text(
-                      'Email Address or Mobile Number',
+                      'Member Email Address',
                       style: TextStyle(
                         fontSize: 10,
                         color: Color(0xFF4D5968),
@@ -411,9 +463,10 @@ class _InviteMemberScreenState
                     const SizedBox(height: 6),
 
                     _inputField(
-                      controller: _contactController,
-                      hint: 'name@example.com or +94 77 123 4567',
-                      icon: Icons.contact_phone_outlined,
+                      controller: _emailController,
+                      hint: 'name@example.com',
+                      icon: Icons.mail_outline_rounded,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                   ],
                 ),
@@ -541,9 +594,11 @@ class _InviteMemberScreenState
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
+      keyboardType: keyboardType,
       style: const TextStyle(
         fontSize: 12,
         color: Color(0xFF172033),
