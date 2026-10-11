@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../main.dart';
+import '../../utils/app_strings.dart';
 import '../../utils/constants.dart';
 import '../../utils/page_transitions.dart';
 import 'login_screen.dart';
@@ -13,9 +15,15 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
-  AppLanguage _selectedLanguage = AppLanguage.english;
+  late AppLanguage _selectedLanguage;
   bool _isButtonPressed = false;
   bool _isNavigating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedLanguage = appSettings.appLanguage;
+  }
 
   final List<Map<String, dynamic>> _carouselItems = [
     {
@@ -67,14 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   String _getContinueText() {
-    switch (_selectedLanguage) {
-      case AppLanguage.sinhala:
-        return 'ඉදිරියට යන්න';
-      case AppLanguage.tamil:
-        return 'தொடரவும்';
-      case AppLanguage.english:
-        return 'Continue';
-    }
+    return AppStrings.continueBtn;
   }
 
   void _handleContinue() async {
@@ -90,6 +91,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         curve: Curves.fastOutSlowIn,
       );
     } else {
+      // Set chosen language app-wide
+      appSettings.setAppLanguage(_selectedLanguage);
+
       // Navigating from Language screen to LoginScreen
       setState(() {
         _isNavigating = true;
@@ -181,6 +185,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   ElevatedButton(
                     onPressed: () {
                       setState(() => _selectedLanguage = tempLang);
+                      appSettings.setAppLanguage(tempLang);
                       Navigator.pop(ctx);
                     },
                     style: ElevatedButton.styleFrom(
@@ -524,6 +529,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 isSelected: isSelected,
                 onTap: () {
                   setState(() => _selectedLanguage = lang.code);
+                  appSettings.setAppLanguage(lang.code);
                 },
               ),
             );

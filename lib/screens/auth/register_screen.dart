@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/app_strings.dart';
 import '../../utils/page_transitions.dart';
 import '../../widgets/google_icon.dart';
 import '../main_navigation.dart';
@@ -248,7 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 32),
 
                 // Full Name Input
-                _buildFieldLabel('Full Name'),
+                _buildFieldLabel(AppStrings.isSinhala ? 'සම්පූර්ණ නම' : (AppStrings.isTamil ? 'முழு பெயர்' : 'Full Name')),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
@@ -263,7 +264,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // Email or Phone Input
-                _buildFieldLabel('Email or Phone'),
+                _buildFieldLabel(AppStrings.email),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
@@ -284,7 +285,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // Password Input
-                _buildFieldLabel('Password'),
+                _buildFieldLabel(AppStrings.password),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
@@ -334,8 +335,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Sign Up',
+                      : Text(
+                          AppStrings.signUp,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

@@ -25,8 +25,33 @@ class AppSettings extends ChangeNotifier {
   String language = 'English';
   String textSize = 'Medium';
 
+  AppLanguage get appLanguage {
+    final lower = language.toLowerCase();
+    if (lower.contains('sin') || lower == 'si') {
+      return AppLanguage.sinhala;
+    } else if (lower.contains('tam') || lower == 'ta') {
+      return AppLanguage.tamil;
+    }
+    return AppLanguage.english;
+  }
+
   void changeLanguage(String value) {
     language = value;
+    notifyListeners();
+  }
+
+  void setAppLanguage(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.sinhala:
+        language = 'Sinhala';
+        break;
+      case AppLanguage.tamil:
+        language = 'Tamil';
+        break;
+      case AppLanguage.english:
+        language = 'English';
+        break;
+    }
     notifyListeners();
   }
 

@@ -4,6 +4,7 @@ import '../../models/expense_model.dart';
 import '../../models/limit_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_strings.dart';
 import '../main_navigation.dart';
 import 'bills_screen.dart';
 import 'goals_screen.dart';
@@ -194,7 +195,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'Add ${limit.category} Expense',
+                              AppStrings.addExpense + ': ' + AppStrings.getCategoryName(limit.category),
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w700,
@@ -238,9 +239,9 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'EXPENSE AMOUNT',
-                              style: TextStyle(
+                            Text(
+                              AppStrings.expenseAmount,
+                              style: const TextStyle(
                                 color: Color(0xFF34D399),
                                 fontSize: 10.5,
                                 fontWeight: FontWeight.w700,
@@ -390,9 +391,9 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                   const SizedBox(height: 14),
 
                   // Note input
-                  const Text(
-                    'NOTE / DESCRIPTION',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.6),
+                  Text(
+                    AppStrings.noteDescription,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF64748B), letterSpacing: 0.6),
                   ),
                   const SizedBox(height: 6),
                   Container(
@@ -660,7 +661,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                   elevation: 0,
                 ),
                 icon: const Icon(Icons.add_circle_outline_rounded, size: 20),
-                label: Text('Add ${limit.category} Expense', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                label: Text(AppStrings.addExpense + ': ' + AppStrings.getCategoryName(limit.category), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
                 onPressed: () {
                   Navigator.pop(ctx);
                   _showAddExpenseForLimitSheet(context, limit, spent);
@@ -775,9 +776,9 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
               ),
             ),
           ),
-          title: const Text(
-            'Limits',
-            style: TextStyle(
+          title: Text(
+            AppStrings.limits,
+            style: const TextStyle(
               color: Color(0xFF0F172A),
               fontWeight: FontWeight.bold,
               fontSize: 20,
@@ -853,12 +854,12 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                   children: [
                     // 1. AT-RISK CATEGORIES Header
                     Row(
-                      children: const [
-                        Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
-                        SizedBox(width: 8),
+                      children: [
+                        const Icon(Icons.circle, color: Color(0xFFF59E0B), size: 8),
+                        const SizedBox(width: 8),
                         Text(
-                          'AT-RISK CATEGORIES',
-                          style: TextStyle(
+                          AppStrings.atRiskCategories,
+                          style: const TextStyle(
                             color: Color(0xFF64748B),
                             fontSize: 11,
                             fontWeight: FontWeight.bold,
@@ -933,18 +934,18 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Row(
-                          children: const [
+                          children: [
                             Text(
-                              'ALL BUDGETS',
-                              style: TextStyle(
+                              AppStrings.allBudgets,
+                              style: const TextStyle(
                                 color: Color(0xFF0F172A),
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
                               ),
                             ),
-                            SizedBox(width: 6),
-                            Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
+                            const SizedBox(width: 6),
+                            const Icon(Icons.circle, color: Color(0xFF10B981), size: 7),
                           ],
                         ),
                         Container(
@@ -1062,7 +1063,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                                             children: [
                                               Flexible(
                                                 child: Text(
-                                                  model.category,
+                                                  AppStrings.getCategoryName(model.category),
                                                   style: const TextStyle(
                                                     color: Color(0xFF0F172A),
                                                     fontWeight: FontWeight.bold,
@@ -1092,8 +1093,8 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                                                       ),
                                                     Text(
                                                       isClosed
-                                                          ? 'CLOSED'
-                                                          : (ratio >= 0.8 ? 'AT RISK' : '${(ratio * 100).toInt()}%'),
+                                                          ? AppStrings.closed
+                                                          : (ratio >= 0.8 ? AppStrings.atRisk : '${(ratio * 100).toInt()}%'),
                                                       style: TextStyle(
                                                         color: isClosed
                                                             ? const Color(0xFFDC2626)
@@ -1112,8 +1113,8 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                                             isClosed
                                                 ? (spent > limit
                                                     ? 'Exceeded by Rs. ${(spent - limit).toInt()}'
-                                                    : 'Limit reached (100% Capped)')
-                                                : 'Rs. ${remaining.toInt()} remaining',
+                                                    : AppStrings.limitCapped)
+                                                : 'Rs. ${remaining.toInt()} ' + AppStrings.remaining,
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
@@ -1183,7 +1184,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
                                     Text(
-                                      'Rs. ${spent.toInt()} spent',
+                                      'Rs. ${spent.toInt()} ' + AppStrings.spent,
                                       style: TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -1191,7 +1192,7 @@ class _LimitsBillsScreenState extends State<LimitsBillsScreen> {
                                       ),
                                     ),
                                     Text(
-                                      'Limit: Rs. ${limit.toInt()}',
+                                      AppStrings.limit + ': Rs. ' + '${limit.toInt()}',
                                       style: const TextStyle(
                                         fontSize: 11.5,
                                         color: Color(0xFF94A3B8),

@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../models/expense_model.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
+import '../utils/app_strings.dart';
 
 class QuickAddBottomSheet extends StatefulWidget {
   final UserModel currentUser;
@@ -279,8 +280,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             const SizedBox(height: 24),
 
             // Suggested Categories
-            const Text(
-              'SUGGESTED CATEGORIES',
+            Text(
+              AppStrings.isSinhala ? 'යෝජිත වර්ගීකරණය' : (AppStrings.isTamil ? 'பரிந்துரைக்கப்பட்ட வகைகள்' : 'SUGGESTED CATEGORIES'),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -311,7 +312,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                       ),
                     ),
                     child: Text(
-                      cat,
+                      AppStrings.getCategoryName(cat),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
@@ -435,8 +436,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'QUICK SAVE',
+                      : Text(
+                          AppStrings.isSinhala ? 'සුරකින්න (SAVE)' : (AppStrings.isTamil ? 'சேமிக்க (SAVE)' : 'QUICK SAVE'),
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/app_strings.dart';
 import '../../utils/page_transitions.dart';
 import '../../widgets/google_icon.dart';
 import '../dashboard/create_family_screen.dart';
@@ -175,7 +176,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   child: const Icon(Icons.group_add_rounded, color: AppColors.primary),
                 ),
-                title: const Text('Join with Invite Code', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(AppStrings.joinFamily, style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Enter 6-digit code from household admin'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 onTap: () async {
@@ -214,7 +215,7 @@ class _LoginScreenState extends State<LoginScreen>
                   ),
                   child: const Icon(Icons.roofing_rounded, color: Color(0xFF14B8A6)),
                 ),
-                title: const Text('Create New Household', style: TextStyle(fontWeight: FontWeight.bold)),
+                title: Text(AppStrings.createFamily, style: TextStyle(fontWeight: FontWeight.bold)),
                 subtitle: const Text('Start fresh and generate an invite code'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 14),
                 onTap: () async {
@@ -364,8 +365,8 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 44),
 
                 // Main Heading
-                const Text(
-                  'Login in to your Account',
+                Text(
+                  AppStrings.welcomeBack,
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 28,
@@ -378,7 +379,7 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 36),
 
                 // Email or Phone Input
-                _buildFieldLabel('Email or Phone'),
+                _buildFieldLabel(AppStrings.email),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
@@ -399,7 +400,7 @@ class _LoginScreenState extends State<LoginScreen>
                 const SizedBox(height: 20),
 
                 // Password Input
-                _buildFieldLabel('Password'),
+                _buildFieldLabel(AppStrings.password),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
@@ -449,8 +450,8 @@ class _LoginScreenState extends State<LoginScreen>
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Login',
+                      : Text(
+                          AppStrings.signIn,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -552,8 +553,8 @@ class _LoginScreenState extends State<LoginScreen>
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      "Don't have an account? ",
+                    Text(
+                      AppStrings.isSinhala ? 'ගිණුමක් නැද්ද? ' : (AppStrings.isTamil ? 'கணக்கு இல்லையா? ' : "Don't have an account? "),
                       style: TextStyle(
                         fontSize: 14,
                         color: AppColors.textSecondary,
@@ -566,8 +567,8 @@ class _LoginScreenState extends State<LoginScreen>
                           SmoothPageRoute(page: const RegisterScreen()),
                         );
                       },
-                      child: const Text(
-                        'Sign Up',
+                      child: Text(
+                        AppStrings.signUp,
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

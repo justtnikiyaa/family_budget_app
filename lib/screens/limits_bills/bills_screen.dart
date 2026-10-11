@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/bill_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_strings.dart';
 import 'add_bill_screen.dart';
 
 class BillsScreen extends StatefulWidget {
@@ -230,9 +231,9 @@ class _BillsScreenState extends State<BillsScreen> {
                 ),
               ),
             ),
-            title: const Text(
-              'BILLS',
-              style: TextStyle(
+            title: Text(
+              AppStrings.bills.toUpperCase(),
+              style: const TextStyle(
                 color: Color(0xFF0F172A),
                 fontWeight: FontWeight.bold,
                 fontSize: 18,

@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../models/goal_model.dart';
 import '../../models/user_model.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_strings.dart';
 import 'add_goal_screen.dart';
 
 class GoalsScreen extends StatefulWidget {
@@ -479,9 +480,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
             ),
           ),
         ),
-        title: const Text(
-          'GOAL TRACKER',
-          style: TextStyle(
+        title: Text(
+          AppStrings.goals.toUpperCase(),
+          style: const TextStyle(
             color: Color(0xFF0F172A),
             fontWeight: FontWeight.bold,
             fontSize: 18,
