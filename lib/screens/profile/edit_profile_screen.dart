@@ -1,4 +1,9 @@
+
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 
@@ -19,6 +24,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   late TextEditingController _phoneController;
 
   final AuthService _authService = AuthService();
+  final ImagePicker _picker = ImagePicker();
+
+  XFile? _selectedImage;
 
   bool _isLoading = false;
 
@@ -86,7 +94,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
-  void _changePhoto() {
+  Future<void> _changePhoto() async {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -95,49 +103,83 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           top: Radius.circular(24),
         ),
       ),
-      builder: (context) {
+      builder: (sheetContext) {
         return SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  'Change Profile Photo',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
+                // TITLE AND DELETE ICON
+                Row(
+                  children: [
+                    const Spacer(),
+                    const Text(
+                      'Change Profile Photo',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const Spacer(),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.pop(sheetContext);
+
+                        if (_selectedImage != null) {
+                          setState(() {
+                            _selectedImage = null;
+                          });
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'Profile photo removed.',
+                              ),
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'No profile photo to remove.',
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: Colors.red,
+                        size: 23,
+                      ),
+                    ),
+                  ],
                 ),
+
                 const SizedBox(height: 20),
+
+                // TAKE A PHOTO
                 ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined),
+                  leading: const Icon(
+                    Icons.camera_alt_outlined,
+                  ),
                   title: const Text('Take a photo'),
                   onTap: () {
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Camera feature will be connected next.',
-                        ),
-                      ),
-                    );
+                    Navigator.pop(sheetContext);
+                    _pickImage(ImageSource.camera);
                   },
                 ),
+
+                // CHOOSE FROM GALLERY
                 ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
+                  leading: const Icon(
+                    Icons.photo_library_outlined,
+                  ),
                   title: const Text('Choose from gallery'),
                   onTap: () {
-                    Navigator.pop(context);
-
-                    ScaffoldMessenger.of(this.context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'Gallery feature will be connected next.',
-                        ),
-                      ),
-                    );
+                    Navigator.pop(sheetContext);
+                    _pickImage(ImageSource.gallery);
                   },
                 ),
               ],
@@ -146,6 +188,30 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         );
       },
     );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        imageQuality: 85,
+        maxWidth: 1000,
+      );
+
+      if (image != null && mounted) {
+        setState(() {
+          _selectedImage = image;
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not select photo: $e'),
+        ),
+      );
+    }
   }
 
   @override
@@ -161,9 +227,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // -----------------------------------------------------------
             // TOP BAR
-            // -----------------------------------------------------------
             Padding(
               padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
               child: Row(
@@ -213,18 +277,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
             ),
 
-            // -----------------------------------------------------------
             // CONTENT
-            // -----------------------------------------------------------
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                padding: const EdgeInsets.fromLTRB(
+                  16,
+                  8,
+                  16,
+                  24,
+                ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // -----------------------------------------------------
                     // PROFILE PHOTO
-                    // -----------------------------------------------------
                     Center(
                       child: Column(
                         children: [
@@ -243,18 +308,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   ),
                                 ),
                                 alignment: Alignment.center,
-                                child: Text(
-                                  _getInitials(
-                                    widget.currentUser.displayName,
-                                  ),
-                                  style: const TextStyle(
-                                    fontSize: 42,
-                                    fontWeight: FontWeight.w700,
-                                    color: primaryColor,
-                                  ),
+                                child: ClipOval(
+                                  child: _selectedImage != null
+                                      ? Image.file(
+                                          File(_selectedImage!.path),
+                                          width: 110,
+                                          height: 110,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : Text(
+                                          _getInitials(
+                                            widget.currentUser.displayName,
+                                          ),
+                                          style: const TextStyle(
+                                            fontSize: 42,
+                                            fontWeight: FontWeight.w700,
+                                            color: primaryColor,
+                                          ),
+                                        ),
                                 ),
                               ),
-
                               Positioned(
                                 right: -2,
                                 bottom: -2,
@@ -277,9 +350,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ],
                           ),
-
                           const SizedBox(height: 12),
-
                           GestureDetector(
                             onTap: _changePhoto,
                             child: const Text(
@@ -297,9 +368,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 28),
 
-                    // -----------------------------------------------------
                     // FULL NAME
-                    // -----------------------------------------------------
                     _sectionLabel('FULL NAME'),
 
                     const SizedBox(height: 7),
@@ -320,9 +389,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 18),
 
-                    // -----------------------------------------------------
                     // EMAIL
-                    // -----------------------------------------------------
                     Row(
                       children: [
                         _sectionLabel('EMAIL ADDRESS'),
@@ -378,9 +445,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 18),
 
-                    // -----------------------------------------------------
                     // PHONE NUMBER
-                    // -----------------------------------------------------
                     _sectionLabel('PHONE NUMBER'),
 
                     const SizedBox(height: 7),
@@ -446,9 +511,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 18),
 
-                    // -----------------------------------------------------
                     // ROLE IN HOUSEHOLD
-                    // -----------------------------------------------------
                     _sectionLabel('ROLE IN HOUSEHOLD'),
 
                     const SizedBox(height: 7),
@@ -519,9 +582,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 22),
 
-                    // -----------------------------------------------------
                     // HOUSEHOLD DETAILS
-                    // -----------------------------------------------------
                     Row(
                       children: [
                         const Text(
@@ -675,9 +736,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                     const SizedBox(height: 28),
 
-                    // -----------------------------------------------------
                     // SAVE BUTTON
-                    // -----------------------------------------------------
                     SizedBox(
                       width: double.infinity,
                       height: 54,
