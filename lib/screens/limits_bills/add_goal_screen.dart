@@ -416,17 +416,28 @@ class _AddGoalScreenState extends State<AddGoalScreen> {
                       Expanded(
                         child: TextField(
                           controller: _amountController,
+                          cursorColor: const Color(0xFF10B981),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 32,
+                            fontSize: 34,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
                           decoration: const InputDecoration(
+                            filled: false,
+                            fillColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             hintText: '0',
-                            hintStyle: TextStyle(color: Colors.white30),
+                            hintStyle: TextStyle(
+                              color: Colors.white38,
+                              fontSize: 34,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            isDense: true,
                             contentPadding: EdgeInsets.zero,
                           ),
                         ),
