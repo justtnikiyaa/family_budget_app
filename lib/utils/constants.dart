@@ -30,7 +30,7 @@ class AppColors {
 }
 
 class AppConstants {
-  static const String appName = 'Smart Family Budget';
+  static const String appName = 'Family Budget App';
   static const String countryBadge = 'Sri Lanka 🇱🇰';
 
   // Firestore Collections

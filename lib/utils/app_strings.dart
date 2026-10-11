@@ -140,9 +140,9 @@ class AppStrings {
   static final Map<String, Map<AppLanguage, String>> _translations = {
     // Identity
     'appName': {
-      AppLanguage.english: 'Smart Family Budget',
-      AppLanguage.sinhala: 'Smart Family Budget',
-      AppLanguage.tamil: 'Smart Family Budget',
+      AppLanguage.english: 'Family Budget App',
+      AppLanguage.sinhala: 'Family Budget App',
+      AppLanguage.tamil: 'Family Budget App',
     },
     'appTagline': {
       AppLanguage.english: 'SHARED HOUSEHOLD FINANCES',

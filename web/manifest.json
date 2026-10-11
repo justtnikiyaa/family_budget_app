@@ -1,6 +1,6 @@
 {
-    "name": "family_budget_app",
-    "short_name": "family_budget_app",
+    "name": "Family Budget App",
+    "short_name": "Family Budget",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
