@@ -252,6 +252,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
+                  textInputAction: TextInputAction.next,
                   validator: (val) =>
                       val != null && val.trim().isNotEmpty ? null : 'Please enter your name',
                   decoration: _buildInputDecoration(
@@ -267,6 +268,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Enter your email or phone';
                     if (!val.contains('@')) return 'Please enter a valid email address';
@@ -286,8 +289,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
                   validator: (val) =>
                       val != null && val.length >= 6 ? null : 'Minimum 6 characters required',
+                  onFieldSubmitted: (_) => _handleSignUp(),
                   decoration: _buildInputDecoration(
                     hintText: '••••••••',
                     prefixIcon: Icons.lock_outline,

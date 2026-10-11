@@ -62,14 +62,9 @@ class MyApp extends StatelessWidget {
           title: AppConstants.appName,
           theme: AppTheme.lightTheme,
           builder: (context, child) {
-            final mediaQuery = MediaQuery.of(context);
-
-            return MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(
-                  appSettings.textScale,
-                ),
-              ),
+            return MediaQuery.withClampedTextScaling(
+              minScaleFactor: appSettings.textScale,
+              maxScaleFactor: appSettings.textScale,
               child: child ?? const SizedBox.shrink(),
             );
           },

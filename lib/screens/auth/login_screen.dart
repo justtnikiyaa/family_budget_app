@@ -383,6 +383,8 @@ class _LoginScreenState extends State<LoginScreen>
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Enter your email or phone';
                     if (!val.contains('@')) return 'Please enter a valid email address';
@@ -402,8 +404,10 @@ class _LoginScreenState extends State<LoginScreen>
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
                   validator: (val) =>
                       val != null && val.length >= 6 ? null : 'Minimum 6 characters required',
+                  onFieldSubmitted: (_) => _handleLogin(),
                   decoration: _buildInputDecoration(
                     hintText: '••••••••',
                     prefixIcon: Icons.lock_outline,
