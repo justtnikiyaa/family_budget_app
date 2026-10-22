@@ -23,15 +23,17 @@ Designed to help families track daily expenses, monitor savings goals, manage re
   <table>
     <tr>
       <td align="center"><b>Authentication</b></td>
+      <td align="center"><b>Join Household</b></td>
       <td align="center"><b>Family Dashboard</b></td>
-      <td align="center"><b>Limits & Bills</b></td>
+      <td align="center"><b>Bills & Limits</b></td>
       <td align="center"><b>Profile & Members</b></td>
     </tr>
     <tr>
-      <td><img src="docs/screenshots/login.png" width="200" alt="Login Screen"/></td>
-      <td><img src="docs/screenshots/dashboard.png" width="200" alt="Dashboard Screen"/></td>
-      <td><img src="docs/screenshots/limits_bills.png" width="200" alt="Limits & Bills"/></td>
-      <td><img src="docs/screenshots/profile.png" width="200" alt="Profile Management"/></td>
+      <td><img src="docs/screenshots/login.png" width="160" alt="Login Screen"/></td>
+      <td><img src="docs/screenshots/join_family.png" width="160" alt="Join Family Screen"/></td>
+      <td><img src="docs/screenshots/dashboard.png" width="160" alt="Dashboard Screen"/></td>
+      <td><img src="docs/screenshots/limits_bills.png" width="160" alt="Limits & Bills Screen"/></td>
+      <td><img src="docs/screenshots/profile.png" width="160" alt="Profile Screen"/></td>
     </tr>
   </table>
 </div>
