@@ -61,6 +61,7 @@ class DefaultFirebaseOptions {
     storageBucket: 'family-budget-app-we105.firebasestorage.app',
     iosBundleId: 'com.example.familyBudgetApp',
   );
+
   static const FirebaseOptions web = FirebaseOptions(
     apiKey: 'AIzaSyAbvrTHeoY2ntb58qotnK4x1UW_z_MIBb8',
     appId: '1:276027777653:web:8d5ac6da94f703a0adce3c',

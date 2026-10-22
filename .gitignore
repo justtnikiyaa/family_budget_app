@@ -48,3 +48,9 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Build releases & Firebase hosting cache
+/release/
+*.apk
+.firebase/
+android/.kotlin/

@@ -3,18 +3,31 @@ import 'package:flutter/services.dart';
 import '../models/expense_model.dart';
 import '../models/user_model.dart';
 import '../services/firestore_service.dart';
+import '../utils/app_strings.dart';
 
 class QuickAddBottomSheet extends StatefulWidget {
   final UserModel currentUser;
+  final String? initialCategory;
 
-  const QuickAddBottomSheet({super.key, required this.currentUser});
+  const QuickAddBottomSheet({
+    super.key,
+    required this.currentUser,
+    this.initialCategory,
+  });
 
-  static Future<void> show(BuildContext context, UserModel currentUser) {
+  static Future<void> show(
+    BuildContext context,
+    UserModel currentUser, {
+    String? initialCategory,
+  }) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => QuickAddBottomSheet(currentUser: currentUser),
+      builder: (_) => QuickAddBottomSheet(
+        currentUser: currentUser,
+        initialCategory: initialCategory,
+      ),
     );
   }
 
@@ -26,9 +39,34 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
   final FirestoreService _firestoreService = FirestoreService();
   final TextEditingController _amountController = TextEditingController();
   final TextEditingController _noteController = TextEditingController();
-  String _selectedCategory = 'Groceries';
-  final List<String> _suggestedCategories = const ['Groceries', 'Coffee', 'Lunch', 'Gift'];
+  late String _selectedCategory;
+  final List<String> _suggestedCategories = const [
+    'Fuel',
+    'Groceries',
+    'Lunch',
+    'Coffee',
+    'Transport',
+    'Dining',
+    'Bills',
+    'Shopping',
+    'Health',
+    'Gift',
+  ];
   bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedCategory = widget.initialCategory ?? 'Fuel';
+  }
+
+  List<String> get _displayCategories {
+    final list = List<String>.from(_suggestedCategories);
+    if (!list.contains(_selectedCategory)) {
+      list.insert(0, _selectedCategory);
+    }
+    return list;
+  }
 
   @override
   void dispose() {
@@ -242,8 +280,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             const SizedBox(height: 24),
 
             // Suggested Categories
-            const Text(
-              'SUGGESTED CATEGORIES',
+            Text(
+              AppStrings.isSinhala ? 'යෝජිත වර්ගීකරණය' : (AppStrings.isTamil ? 'பரிந்துரைக்கப்பட்ட வகைகள்' : 'SUGGESTED CATEGORIES'),
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w800,
@@ -255,7 +293,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _suggestedCategories.map((cat) {
+              children: _displayCategories.map((cat) {
                 final isSelected = cat == _selectedCategory;
                 return GestureDetector(
                   onTap: () {
@@ -274,7 +312,7 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                       ),
                     ),
                     child: Text(
-                      cat,
+                      AppStrings.getCategoryName(cat),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
@@ -398,8 +436,8 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                             color: Colors.white,
                           ),
                         )
-                      : const Text(
-                          'QUICK SAVE',
+                      : Text(
+                          AppStrings.isSinhala ? 'සුරකින්න (SAVE)' : (AppStrings.isTamil ? 'சேமிக்க (SAVE)' : 'QUICK SAVE'),
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,

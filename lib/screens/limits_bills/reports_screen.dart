@@ -68,7 +68,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
       body: SafeArea(
         child: StreamBuilder<List<ExpenseModel>>(
-          stream: _firestoreService.getExpenses(
+          stream: _firestoreService.getAllTransactions(
             familyId: widget.currentUser?.familyId,
             userId: widget.currentUser?.familyId == null ? widget.currentUser?.uid : null,
           ),

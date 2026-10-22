@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class InviteMemberScreen extends StatefulWidget {
   final String inviteCode;
@@ -19,7 +20,7 @@ class _InviteMemberScreenState
   final TextEditingController _nameController =
       TextEditingController();
 
-  final TextEditingController _contactController =
+  final TextEditingController _emailController =
       TextEditingController();
 
   String _selectedPermission = 'member';
@@ -27,7 +28,7 @@ class _InviteMemberScreenState
   @override
   void dispose() {
     _nameController.dispose();
-    _contactController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
@@ -44,54 +45,127 @@ class _InviteMemberScreenState
     );
   }
 
-  void _shareWhatsApp() {
-    // WhatsApp integration will be connected next.
-    Clipboard.setData(
-      ClipboardData(text: widget.inviteCode),
+  // Open WhatsApp and prepare the household invitation message.
+  Future<void> _shareWhatsApp() async {
+    final message =
+        'Hi! Join my Family Budget App household.\n\n'
+        'Household Join Code: ${widget.inviteCode}\n\n'
+        'Enter this code in the app to join my household.';
+
+    final whatsappUrl = Uri.https(
+      'wa.me',
+      '/',
+      {'text': message},
     );
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Join code copied. You can paste it in WhatsApp.',
-        ),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    try {
+      final opened = await launchUrl(
+        whatsappUrl,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Could not open WhatsApp. Please check if it is installed.',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open WhatsApp.'),
+          ),
+        );
+      }
+    }
   }
 
-  void _sendInvitation() {
+  Future<void> _sendInvitation() async {
     final name = _nameController.text.trim();
-    final contact = _contactController.text.trim();
+    final email = _emailController.text.trim();
 
-    if (name.isEmpty || contact.isEmpty) {
+    if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Please enter the member name and email/mobile number.',
-          ),
+          content: Text('Please enter the member full name.'),
+          backgroundColor: Colors.red,
         ),
       );
       return;
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Invitation details ready to send.'),
-      ),
+    if (email.isEmpty || !RegExp(r'^[\w\.\-]+@[a-zA-Z0-9\-]+\.[a-zA-Z0-9\-\.]+$').hasMatch(email)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a valid email address (e.g. member@example.com).'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final roleTitle = _selectedPermission == 'admin' ? 'Admin / Co-Owner (Full Access)' : 'Member';
+    final subject = 'Invitation to join our Family Budget (Code: ${widget.inviteCode})';
+    final body = 'Hi $name,\n\n'
+        'You have been invited to join our household budget on the Smart Family Budget App!\n\n'
+        '• Role: $roleTitle\n'
+        '• Household Join Code: ${widget.inviteCode}\n\n'
+        'How to join:\n'
+        '1. Open the Smart Family Budget app on your device.\n'
+        '2. Choose "Join an Existing Family".\n'
+        '3. Enter the code "${widget.inviteCode}" to start budgeting together!\n\n'
+        'Best regards,\nYour Family';
+
+    final emailUri = Uri(
+      scheme: 'mailto',
+      path: email,
+      query: 'subject=${Uri.encodeComponent(subject)}&body=${Uri.encodeComponent(body)}',
     );
+
+    try {
+      final opened = await launchUrl(
+        emailUri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!opened && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Could not open default email app.'),
+          ),
+        );
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Email invitation prepared for $email!'),
+            backgroundColor: const Color(0xFF087F70),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to open email client: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8FC),
-
       appBar: AppBar(
         backgroundColor: const Color(0xFFF8F8FC),
         elevation: 0,
         centerTitle: true,
-
         leading: Padding(
           padding: const EdgeInsets.only(left: 16),
           child: IconButton(
@@ -104,7 +178,6 @@ class _InviteMemberScreenState
             ),
           ),
         ),
-
         title: const Text(
           'INVITE MEMBER',
           style: TextStyle(
@@ -114,7 +187,6 @@ class _InviteMemberScreenState
             letterSpacing: 0.4,
           ),
         ),
-
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 16),
@@ -134,7 +206,6 @@ class _InviteMemberScreenState
           ),
         ],
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(
@@ -146,7 +217,6 @@ class _InviteMemberScreenState
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // Description
               const Text(
                 'Add a new member to share household budgets and '
@@ -175,7 +245,6 @@ class _InviteMemberScreenState
                 ),
                 child: Column(
                   children: [
-
                     Row(
                       mainAxisAlignment:
                           MainAxisAlignment.spaceBetween,
@@ -199,7 +268,6 @@ class _InviteMemberScreenState
                             ),
                           ),
                         ),
-
                         const Row(
                           children: [
                             Icon(
@@ -275,7 +343,6 @@ class _InviteMemberScreenState
 
                     Row(
                       children: [
-
                         Expanded(
                           child: OutlinedButton.icon(
                             onPressed: _copyCode,
@@ -283,18 +350,14 @@ class _InviteMemberScreenState
                               Icons.copy_outlined,
                               size: 16,
                             ),
-                            label: const Text(
-                              'Copy Code',
-                            ),
+                            label: const Text('Copy Code'),
                             style: OutlinedButton.styleFrom(
                               backgroundColor: Colors.white,
                               foregroundColor:
                                   const Color(0xFF172033),
                               side: BorderSide.none,
-                              minimumSize:
-                                  const Size(0, 42),
-                              shape:
-                                  RoundedRectangleBorder(
+                              minimumSize: const Size(0, 42),
+                              shape: RoundedRectangleBorder(
                                 borderRadius:
                                     BorderRadius.circular(22),
                               ),
@@ -311,18 +374,14 @@ class _InviteMemberScreenState
                               Icons.chat_outlined,
                               size: 16,
                             ),
-                            label: const Text(
-                              'WhatsApp',
-                            ),
+                            label: const Text('WhatsApp'),
                             style: ElevatedButton.styleFrom(
                               backgroundColor:
                                   const Color(0xFF20C76A),
                               foregroundColor: Colors.white,
                               elevation: 0,
-                              minimumSize:
-                                  const Size(0, 42),
-                              shape:
-                                  RoundedRectangleBorder(
+                              minimumSize: const Size(0, 42),
+                              shape: RoundedRectangleBorder(
                                 borderRadius:
                                     BorderRadius.circular(22),
                               ),
@@ -346,12 +405,11 @@ class _InviteMemberScreenState
                     ),
                   ),
                   Padding(
-                    padding:
-                        const EdgeInsets.symmetric(
+                    padding: const EdgeInsets.symmetric(
                       horizontal: 10,
                     ),
                     child: Text(
-                      'OR INVITE VIA CONTACT DETAILS',
+                      'OR INVITE VIA EMAIL',
                       style: TextStyle(
                         fontSize: 9,
                         color: Colors.grey.shade600,
@@ -374,10 +432,8 @@ class _InviteMemberScreenState
                 title: 'Member Information',
                 icon: Icons.person_add_alt_1_outlined,
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-
                     const Text(
                       'Member Full Name',
                       style: TextStyle(
@@ -397,7 +453,7 @@ class _InviteMemberScreenState
                     const SizedBox(height: 12),
 
                     const Text(
-                      'Email Address or Mobile Number',
+                      'Member Email Address',
                       style: TextStyle(
                         fontSize: 10,
                         color: Color(0xFF4D5968),
@@ -407,9 +463,10 @@ class _InviteMemberScreenState
                     const SizedBox(height: 6),
 
                     _inputField(
-                      controller: _contactController,
-                      hint: 'name@example.com or +94 77 123 4567',
-                      icon: Icons.contact_phone_outlined,
+                      controller: _emailController,
+                      hint: 'name@example.com',
+                      icon: Icons.mail_outline_rounded,
+                      keyboardType: TextInputType.emailAddress,
                     ),
                   ],
                 ),
@@ -430,7 +487,6 @@ class _InviteMemberScreenState
                 ),
                 child: Column(
                   children: [
-
                     _permissionTile(
                       value: 'admin',
                       title: 'Full Access',
@@ -473,13 +529,11 @@ class _InviteMemberScreenState
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        const Color(0xFF087F70),
+                    backgroundColor: const Color(0xFF087F70),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(22),
+                      borderRadius: BorderRadius.circular(22),
                     ),
                   ),
                 ),
@@ -505,10 +559,8 @@ class _InviteMemberScreenState
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Row(
             children: [
               Icon(
@@ -526,7 +578,7 @@ class _InviteMemberScreenState
                 ),
               ),
               const Spacer(),
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
 
@@ -542,9 +594,11 @@ class _InviteMemberScreenState
     required TextEditingController controller,
     required String hint,
     required IconData icon,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
+      keyboardType: keyboardType,
       style: const TextStyle(
         fontSize: 12,
         color: Color(0xFF172033),
@@ -566,8 +620,7 @@ class _InviteMemberScreenState
           borderRadius: BorderRadius.circular(7),
           borderSide: BorderSide.none,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(
+        contentPadding: const EdgeInsets.symmetric(
           horizontal: 10,
           vertical: 12,
         ),
@@ -581,8 +634,7 @@ class _InviteMemberScreenState
     required String badge,
     required String description,
   }) {
-    final bool selected =
-        _selectedPermission == value;
+    final bool selected = _selectedPermission == value;
 
     return InkWell(
       borderRadius: BorderRadius.circular(7),
@@ -606,10 +658,8 @@ class _InviteMemberScreenState
           ),
         ),
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
             Radio<String>(
               value: value,
               groupValue: _selectedPermission,
@@ -620,8 +670,7 @@ class _InviteMemberScreenState
                   });
                 }
               },
-              activeColor:
-                  const Color(0xFF087F70),
+              activeColor: const Color(0xFF087F70),
               materialTapTargetSize:
                   MaterialTapTargetSize.shrinkWrap,
             ),
@@ -630,10 +679,8 @@ class _InviteMemberScreenState
 
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-
                   Row(
                     children: [
                       Text(
@@ -648,8 +695,7 @@ class _InviteMemberScreenState
                       const SizedBox(width: 6),
 
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 5,
                           vertical: 2,
                         ),
@@ -657,8 +703,7 @@ class _InviteMemberScreenState
                           color: selected
                               ? const Color(0xFFD5E9F7)
                               : const Color(0xFFE7EAF0),
-                          borderRadius:
-                              BorderRadius.circular(3),
+                          borderRadius: BorderRadius.circular(3),
                         ),
                         child: Text(
                           badge,
@@ -691,3 +736,4 @@ class _InviteMemberScreenState
     );
   }
 }
+

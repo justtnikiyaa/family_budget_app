@@ -284,6 +284,7 @@ class _AddBillScreenState extends State<AddBillScreen> {
                       Expanded(
                         child: TextField(
                           controller: _amountController,
+                          cursorColor: const Color(0xFF10B981),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           style: const TextStyle(
                             color: Colors.white,
@@ -292,7 +293,12 @@ class _AddBillScreenState extends State<AddBillScreen> {
                             letterSpacing: 0.5,
                           ),
                           decoration: const InputDecoration(
+                            filled: false,
+                            fillColor: Colors.transparent,
+                            hoverColor: Colors.transparent,
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             hintText: '0',
                             hintStyle: TextStyle(color: Colors.white38),
                             isDense: true,

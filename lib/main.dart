@@ -5,6 +5,9 @@ import 'firebase_options.dart';
 import 'screens/auth/splash_screen.dart';
 import 'utils/constants.dart';
 import 'utils/theme.dart';
+// ALOA imports - added for Amarasinghe A.L.O.A implementation
+import 'screens/dashboard/create_household_aloa.dart';
+import 'screens/dashboard/family_dashboard_aloa.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,8 +28,33 @@ class AppSettings extends ChangeNotifier {
   String language = 'English';
   String textSize = 'Medium';
 
+  AppLanguage get appLanguage {
+    final lower = language.toLowerCase();
+    if (lower.contains('sin') || lower == 'si') {
+      return AppLanguage.sinhala;
+    } else if (lower.contains('tam') || lower == 'ta') {
+      return AppLanguage.tamil;
+    }
+    return AppLanguage.english;
+  }
+
   void changeLanguage(String value) {
     language = value;
+    notifyListeners();
+  }
+
+  void setAppLanguage(AppLanguage lang) {
+    switch (lang) {
+      case AppLanguage.sinhala:
+        language = 'Sinhala';
+        break;
+      case AppLanguage.tamil:
+        language = 'Tamil';
+        break;
+      case AppLanguage.english:
+        language = 'English';
+        break;
+    }
     notifyListeners();
   }
 
@@ -62,18 +90,22 @@ class MyApp extends StatelessWidget {
           title: AppConstants.appName,
           theme: AppTheme.lightTheme,
           builder: (context, child) {
-            final mediaQuery = MediaQuery.of(context);
-
-            return MediaQuery(
-              data: mediaQuery.copyWith(
-                textScaler: TextScaler.linear(
-                  appSettings.textScale,
-                ),
-              ),
+            return MediaQuery.withClampedTextScaling(
+              minScaleFactor: appSettings.textScale,
+              maxScaleFactor: appSettings.textScale,
               child: child ?? const SizedBox.shrink(),
             );
           },
           home: const SplashScreen(),
+          // ALOA routes - added for Amarasinghe A.L.O.A implementation
+          routes: {
+            '/create-household-aloa': (context) => CreateHouseholdALOA(
+                  currentUser: ModalRoute.of(context)!.settings.arguments as dynamic,
+                ),
+            '/family-dashboard-aloa': (context) => FamilyDashboardALOA(
+                  currentUser: ModalRoute.of(context)!.settings.arguments as dynamic,
+                ),
+          },
         );
       },
     );

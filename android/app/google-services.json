@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "276027777653-vj38mmqp9fpe7soam23vcd7m8bo2asig.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.family_budget_app",
+            "certificate_hash": "50c35a551e86719bda7fd37679316359fb9f5d4b"
+          }
+        },
+        {
           "client_id": "276027777653-maiisebii3hk7o5fub6763hi2qvitqro.apps.googleusercontent.com",
           "client_type": 3
         }
