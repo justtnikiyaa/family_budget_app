@@ -248,11 +248,14 @@ class _QuickAddBottomSheetState extends State<QuickAddBottomSheet> {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  IntrinsicWidth(
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(minWidth: 120, maxWidth: 300),
                     child: TextField(
                       controller: _amountController,
                       textAlign: TextAlign.center,
                       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      autocorrect: false,
+                      enableSuggestions: false,
                       style: const TextStyle(
                         fontSize: 48,
                         fontWeight: FontWeight.w900,

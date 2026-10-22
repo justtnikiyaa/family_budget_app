@@ -405,6 +405,8 @@ class _LoginScreenState extends State<LoginScreen>
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  autocorrect: false,
+                  enableSuggestions: false,
                   textInputAction: TextInputAction.done,
                   validator: (val) =>
                       val != null && val.length >= 6 ? null : 'Minimum 6 characters required',

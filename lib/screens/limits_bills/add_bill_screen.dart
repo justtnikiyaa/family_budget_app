@@ -286,6 +286,8 @@ class _AddBillScreenState extends State<AddBillScreen> {
                           controller: _amountController,
                           cursorColor: const Color(0xFF10B981),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          autocorrect: false,
+                          enableSuggestions: false,
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 34,
