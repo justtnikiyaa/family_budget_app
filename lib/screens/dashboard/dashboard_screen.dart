@@ -10,13 +10,16 @@ import '../../models/goal_model.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../services/firestore_service.dart';
+import '../../utils/app_strings.dart';
 import '../limits_bills/add_bill_screen.dart';
 import '../limits_bills/bills_screen.dart';
 import '../limits_bills/goals_screen.dart';
 import '../limits_bills/limits_bills_screen.dart';
 import '../profile/profile_screen.dart';
+import 'add_income_screen.dart';
 import 'create_family_screen.dart';
 import '../../widgets/quick_add_bottom_sheet.dart';
+import '../../services/widget_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   final UserModel? currentUser;
@@ -31,6 +34,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final AuthService _authService = AuthService();
   final FirestoreService _firestoreService = FirestoreService();
   int _selectedTabIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _firestoreService.migrateLegacyIncomes();
+  }
 
   UserModel get _effectiveUser =>
       widget.currentUser ??
@@ -50,8 +59,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       child: GestureDetector(
         onTap: onTap,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+          margin: const EdgeInsets.symmetric(horizontal: 2.5),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 2),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
@@ -68,21 +77,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 38,
-                height: 38,
+                width: 36,
+                height: 36,
                 decoration: BoxDecoration(
                   color: color.withValues(alpha: 0.12),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(icon, color: color, size: 20),
+                child: Icon(icon, color: color, size: 19),
               ),
-              const SizedBox(height: 6),
+              const SizedBox(height: 5),
               Text(
                 label,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
-                  fontSize: 12,
+                  fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: const Color(0xFF1E293B),
                 ),
@@ -606,7 +615,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: const Color(0xFFF8FAFC),
       body: SafeArea(
         child: StreamBuilder<List<ExpenseModel>>(
-          stream: _firestoreService.getExpenses(
+          stream: _firestoreService.getAllTransactions(
             familyId: _effectiveUser.familyId,
             userId: (_effectiveUser.familyId == null || _effectiveUser.familyId!.isEmpty)
                 ? _effectiveUser.uid
@@ -638,6 +647,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ? (totalIncome - totalExpenses)
                 : 0.0;
             final String availableBalanceString = currencyFormat.format(availableBalance);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              WidgetService.updateWidgetData(
+                available: availableBalanceString,
+                income: currencyFormat.format(totalIncome),
+                spent: currencyFormat.format(totalExpenses),
+              );
+            });
 
             // Dynamic Category Distribution
             final categoryColors = [
@@ -728,7 +745,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                       // Center: Title "Overview"
                       Text(
-                        'Overview',
+                        AppStrings.overview,
                         style: GoogleFonts.inter(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -824,7 +841,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'AVAILABLE',
+                                      AppStrings.available,
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w700,
@@ -859,7 +876,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '$daysLeft days left',
+                                      '$daysLeft ${AppStrings.daysLeft}',
                                       style: GoogleFonts.inter(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
@@ -895,8 +912,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     const SizedBox(width: 6),
                                     Text(
                                       (_effectiveUser.familyId != null && _effectiveUser.familyId!.isNotEmpty)
-                                          ? 'Family Shared Vault'
-                                          : 'Personal Budget Vault',
+                                          ? AppStrings.familySharedVault
+                                          : (AppStrings.isSinhala ? 'පෞද්ගලික අයවැය අරමුදල' : (AppStrings.isTamil ? 'தனிப்பட்ட பட்ஜெட் நிதி' : 'Personal Budget Vault')),
                                       style: GoogleFonts.inter(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w600,
@@ -928,7 +945,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     children: [
                       _buildQuickNavButton(
                         icon: Icons.speed_rounded,
-                        label: 'Limits',
+                        label: AppStrings.limits,
                         color: const Color(0xFF0F766E),
                         onTap: () {
                           Navigator.push(
@@ -944,7 +961,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickNavButton(
                         icon: Icons.receipt_long_rounded,
-                        label: 'Bills',
+                        label: AppStrings.bills,
                         color: const Color(0xFF0284C7),
                         onTap: () {
                           Navigator.push(
@@ -959,7 +976,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickNavButton(
                         icon: Icons.savings_rounded,
-                        label: 'Goals',
+                        label: AppStrings.goals,
                         color: const Color(0xFFD97706),
                         onTap: () {
                           Navigator.push(
@@ -974,7 +991,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                       _buildQuickNavButton(
                         icon: Icons.bar_chart_rounded,
-                        label: 'Reports',
+                        label: AppStrings.reports,
                         color: const Color(0xFF7C3AED),
                         onTap: () {
                           Navigator.push(
@@ -983,6 +1000,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               builder: (_) => LimitsBillsScreen(
                                 currentUser: _effectiveUser,
                                 initialIndex: 3,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      _buildQuickNavButton(
+                        icon: Icons.add_circle_outline_rounded,
+                        label: AppStrings.income,
+                        color: const Color(0xFF10B981),
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => AddIncomeScreen(
+                                currentUser: _effectiveUser,
                               ),
                             ),
                           );
@@ -1003,9 +1035,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     padding: const EdgeInsets.all(4),
                     child: Row(
                       children: [
-                        _buildSegmentTab(0, 'OVERVIEW'),
-                        _buildSegmentTab(1, 'CATEGORY'),
-                        _buildSegmentTab(2, 'MEMBER'),
+                        _buildSegmentTab(0, AppStrings.overview.toUpperCase()),
+                        _buildSegmentTab(1, AppStrings.category),
+                        _buildSegmentTab(2, AppStrings.member),
                       ],
                     ),
                   ),
@@ -1033,11 +1065,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           SpendingDonutChart(
                             segments: segments,
                             centerAmount: totalExpenses > 0 ? currencyFormat.format(totalExpenses) : 'Rs. 0.00',
-                            centerLabel: totalExpenses > 0 ? 'Total Spent' : 'No Expenses',
+                            centerLabel: totalExpenses > 0 ? AppStrings.totalSpent : (AppStrings.isSinhala ? 'වියදම් නැත' : (AppStrings.isTamil ? 'செலவுகள் இல்லை' : 'No Expenses')),
                           ),
                           const SizedBox(height: 22),
                           Text(
-                            'SPENDING DISTRIBUTION',
+                            AppStrings.spendingDistribution,
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -1063,7 +1095,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       children: [
                                         Expanded(
                                           child: _buildLegendItem(
-                                            topCategories[i].key,
+                                            AppStrings.getCategoryName(topCategories[i].key),
                                             '${((topCategories[i].value / totalExpenses) * 100).round()}%',
                                             categoryColors[i % categoryColors.length],
                                             amount: currencyFormat.format(topCategories[i].value),
@@ -1072,7 +1104,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         if (i + 1 < topCategories.length)
                                           Expanded(
                                             child: _buildLegendItem(
-                                              topCategories[i + 1].key,
+                                              AppStrings.getCategoryName(topCategories[i + 1].key),
                                               '${((topCategories[i + 1].value / totalExpenses) * 100).round()}%',
                                               categoryColors[(i + 1) % categoryColors.length],
                                               amount: currencyFormat.format(topCategories[i + 1].value),
@@ -1124,7 +1156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'FAMILY BREAKDOWN',
+                          AppStrings.familyBreakdown,
                           style: GoogleFonts.inter(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -1148,7 +1180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'Monthly Caps',
+                                AppStrings.monthlyCaps,
                                 style: GoogleFonts.inter(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w700,

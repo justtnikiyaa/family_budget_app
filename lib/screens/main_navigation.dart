@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../utils/app_strings.dart';
 import '../widgets/quick_add_bottom_sheet.dart';
+import 'dashboard/add_income_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'limits_bills/bills_screen.dart';
 import 'limits_bills/goals_screen.dart';
@@ -87,7 +89,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               // 1. Overview
               _buildNavItem(
                 icon: Icons.dashboard_rounded,
-                label: 'Overview',
+                label: AppStrings.overview,
                 isSelected: _currentIndex == 0,
                 onTap: () => setState(() => _currentIndex = 0),
               ),
@@ -95,7 +97,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               // 2. Bills (Rakindu's Bills screen)
               _buildNavItem(
                 icon: Icons.receipt_long_rounded,
-                label: 'Bills',
+                label: AppStrings.bills,
                 isSelected: _currentIndex == 1,
                 onTap: () => setState(() => _currentIndex = 1),
               ),
@@ -106,7 +108,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               // 4. Reports
               _buildNavItem(
                 icon: Icons.bar_chart_rounded,
-                label: 'Reports',
+                label: AppStrings.reports,
                 isSelected: _currentIndex == 2,
                 onTap: () => setState(() => _currentIndex = 2),
               ),
@@ -114,7 +116,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               // 5. Preferences
               _buildNavItem(
                 icon: Icons.settings_outlined,
-                label: 'Preferences',
+                label: AppStrings.preferences,
                 isSelected: _currentIndex == 3,
                 onTap: () => setState(() => _currentIndex = 3),
               ),
@@ -198,9 +200,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               ),
             ),
             const SizedBox(height: 2),
-            const Text(
-              'Add',
-              style: TextStyle(
+            Text(
+              AppStrings.add,
+              style: const TextStyle(
                 color: Color(0xFF64748B),
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
@@ -238,9 +240,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
                 ),
               ),
               const SizedBox(height: 16),
-              const Text(
-                'Quick Create',
-                style: TextStyle(
+              Text(
+                AppStrings.isSinhala ? 'ඉක්මන් එකතු කිරීම' : (AppStrings.isTamil ? 'விரைவான சேர்க்கை' : 'Quick Create'),
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w700,
                   color: Color(0xFF0F172A),
@@ -250,18 +252,39 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               _buildActionSheetOption(
                 icon: Icons.payments_outlined,
                 color: const Color(0xFF0F766E),
-                title: 'Add Expense',
-                subtitle: 'Log daily spending for family or yourself',
+                title: AppStrings.addExpense,
+                subtitle: AppStrings.isSinhala
+                    ? 'පවුලේ හෝ පෞද්ගලික දෛනික වියදම් සටහන් කරන්න'
+                    : (AppStrings.isTamil ? 'குடும்ப அல்லது தனிப்பட்ட தினசரி செலவை பதிவு செய்யவும்' : 'Log daily spending for family or yourself'),
                 onTap: () {
                   Navigator.pop(ctx);
                   QuickAddBottomSheet.show(context, activeUser);
                 },
               ),
               _buildActionSheetOption(
+                icon: Icons.account_balance_wallet_outlined,
+                color: const Color(0xFF10B981),
+                title: AppStrings.addIncome,
+                subtitle: AppStrings.isSinhala
+                    ? 'වැටුප්, ව්‍යාපාර හෝ වෙනත් ආදායම් සටහන් කරන්න'
+                    : (AppStrings.isTamil ? 'சம்பளம், வணிகம் அல்லது கூடுதல் வருமானத்தை பதிவு செய்யவும்' : 'Record salary, freelance, business or bonuses'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddIncomeScreen(currentUser: activeUser),
+                    ),
+                  );
+                },
+              ),
+              _buildActionSheetOption(
                 icon: Icons.receipt_long_outlined,
                 color: const Color(0xFF0284C7),
-                title: 'Bills',
-                subtitle: 'Track upcoming dues, settled bills & add new',
+                title: AppStrings.bills,
+                subtitle: AppStrings.isSinhala
+                    ? 'ඉදිරි බිල්පත් සහ ගෙවීම් පරීක්ෂා කරන්න'
+                    : (AppStrings.isTamil ? 'வரவிருக்கும் மற்றும் செலுத்திய கட்டணங்களை நிர்வகிக்கவும்' : 'Track upcoming dues, settled bills & add new'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -275,8 +298,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               _buildActionSheetOption(
                 icon: Icons.speed_outlined,
                 color: const Color(0xFFD97706),
-                title: 'Limits',
-                subtitle: 'Set monthly budget cap for food, bills, or leisure',
+                title: AppStrings.limits,
+                subtitle: AppStrings.isSinhala
+                    ? 'ආහාර, බිල්පත් හෝ ඉන්ධන සඳහා මාසික සීමා පනවන්න'
+                    : (AppStrings.isTamil ? 'உணவு, எரிபொருள் அல்லது பயன்பாடுகளுக்கு மாதாந்திர வரம்பை அமைக்கவும்' : 'Set monthly budget cap for food, bills, or leisure'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(
@@ -293,8 +318,10 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
               _buildActionSheetOption(
                 icon: Icons.savings_outlined,
                 color: const Color(0xFF7C3AED),
-                title: 'Savings Goals',
-                subtitle: 'Track family savings for trip, education, or emergency',
+                title: AppStrings.savingsGoals,
+                subtitle: AppStrings.isSinhala
+                    ? 'පවුලේ සංචාර, අධ්‍යාපන හෝ හදිසි අරමුදල් ඉලක්ක'
+                    : (AppStrings.isTamil ? 'பயணம், கல்வி அல்லது அவசரத்திற்கான குடும்ப சேமிப்பை கண்காணிக்கவும்' : 'Track family savings for trip, education, or emergency'),
                 onTap: () {
                   Navigator.pop(ctx);
                   Navigator.push(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/app_strings.dart';
 import '../../utils/page_transitions.dart';
 import '../../widgets/custom_button.dart';
 import 'edit_profile_screen.dart';
@@ -36,7 +37,7 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Profile & Family'),
+        title: Text(AppStrings.profileAndHousehold),
       ),
       body: ListView(
         padding: const EdgeInsets.all(20.0),
@@ -163,7 +164,7 @@ class ProfileScreen extends StatelessWidget {
                     Icons.group_outlined,
                     color: AppColors.primary,
                   ),
-                  title: const Text('Manage Family Members'),
+                  title: Text(AppStrings.householdMembers),
                   subtitle:
                       const Text('View members, role & share invite code'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
@@ -183,7 +184,7 @@ class ProfileScreen extends StatelessWidget {
                     Icons.group_add_outlined,
                     color: AppColors.accent,
                   ),
-                  title: const Text('Join Another Family'),
+                  title: Text(AppStrings.joinFamily),
                   subtitle: const Text('Enter invitation code'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
@@ -202,7 +203,7 @@ class ProfileScreen extends StatelessWidget {
                     Icons.home_outlined,
                     color: AppColors.income,
                   ),
-                  title: const Text('Create New Family'),
+                  title: Text(AppStrings.createFamily),
                   subtitle: const Text('Start a separate budget wallet'),
                   trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                   onTap: () {
@@ -239,7 +240,7 @@ class ProfileScreen extends StatelessWidget {
                 Icons.settings_outlined,
                 color: AppColors.primary,
               ),
-              title: const Text('Settings'),
+              title: Text(AppStrings.settings),
               subtitle: const Text('Currency, notifications & info'),
               trailing: const Icon(Icons.arrow_forward_ios, size: 16),
               onTap: () {
@@ -257,7 +258,7 @@ class ProfileScreen extends StatelessWidget {
 
           // Sign Out
           CustomButton(
-            text: 'Sign Out',
+            text: AppStrings.logout,
             backgroundColor: Colors.red.shade50,
             textColor: Colors.red,
             onPressed: () async {

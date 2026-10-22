@@ -472,7 +472,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   vertical: 5,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: const Text(
@@ -522,7 +522,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         borderRadius: BorderRadius.circular(9),
                       ),
                       child: DropdownButtonFormField<String>(
-                        value: _selectedRole,
+                        initialValue: _selectedRole,
                         decoration: InputDecoration(
                           prefixIcon: const Icon(
                             Icons.admin_panel_settings_outlined,

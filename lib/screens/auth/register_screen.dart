@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
+import '../../utils/app_strings.dart';
 import '../../utils/page_transitions.dart';
 import '../../widgets/google_icon.dart';
 import '../main_navigation.dart';
@@ -248,10 +249,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 32),
 
                 // Full Name Input
-                _buildFieldLabel('Full Name'),
+                _buildFieldLabel(AppStrings.isSinhala ? 'සම්පූර්ණ නම' : (AppStrings.isTamil ? 'முழு பெயர்' : 'Full Name')),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _nameController,
+                  textInputAction: TextInputAction.next,
                   validator: (val) =>
                       val != null && val.trim().isNotEmpty ? null : 'Please enter your name',
                   decoration: _buildInputDecoration(
@@ -262,11 +264,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // Email or Phone Input
-                _buildFieldLabel('Email or Phone'),
+                _buildFieldLabel(AppStrings.email),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  autocorrect: false,
                   validator: (val) {
                     if (val == null || val.trim().isEmpty) return 'Enter your email or phone';
                     if (!val.contains('@')) return 'Please enter a valid email address';
@@ -281,13 +285,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 20),
 
                 // Password Input
-                _buildFieldLabel('Password'),
+                _buildFieldLabel(AppStrings.password),
                 const SizedBox(height: 8),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: _obscurePassword,
+                  textInputAction: TextInputAction.done,
                   validator: (val) =>
                       val != null && val.length >= 6 ? null : 'Minimum 6 characters required',
+                  onFieldSubmitted: (_) => _handleSignUp(),
                   decoration: _buildInputDecoration(
                     hintText: '••••••••',
                     prefixIcon: Icons.lock_outline,
@@ -329,8 +335,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                           ),
                         )
-                      : const Text(
-                          'Sign Up',
+                      : Text(
+                          AppStrings.signUp,
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,

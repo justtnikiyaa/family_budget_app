@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../main.dart';
+import '../../utils/app_strings.dart';
 import '../../models/user_model.dart';
 import '../../services/auth_service.dart';
 import '../../utils/constants.dart';
@@ -147,21 +148,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icons.language,
                     color: AppColors.primary,
                   ),
-                  title: const Text('Language'),
-                  subtitle: const Text(
-                    'Choose your preferred language',
+                  title: Text(AppStrings.language),
+                  subtitle: Text(
+                    AppStrings.chooseLanguagePref,
                   ),
                   trailing: DropdownButton<String>(
                     value: appSettings.language,
                     underline: const SizedBox(),
-                    items: ['English', 'Sinhala', 'Tamil']
-                        .map(
-                          (language) => DropdownMenuItem<String>(
-                            value: language,
-                            child: Text(language),
-                          ),
-                        )
-                        .toList(),
+                    items: [
+                      const DropdownMenuItem<String>(
+                        value: 'English',
+                        child: Text('English (Global)'),
+                      ),
+                      const DropdownMenuItem<String>(
+                        value: 'Sinhala',
+                        child: Text('සිංහල (Sinhala)'),
+                      ),
+                      const DropdownMenuItem<String>(
+                        value: 'Tamil',
+                        child: Text('தமிழ் (Tamil)'),
+                      ),
+                    ],
                     onChanged: (value) {
                       if (value != null) {
                         appSettings.changeLanguage(value);
@@ -175,8 +182,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Icons.text_fields,
                     color: AppColors.primary,
                   ),
-                  title: const Text('Font Size'),
-                  subtitle: const Text('Adjust text size'),
+                  title: Text(AppStrings.fontSize),
+                  subtitle: Text(AppStrings.adjustTextSize),
                   trailing: DropdownButton<String>(
                     value: appSettings.textSize,
                     underline: const SizedBox(),
