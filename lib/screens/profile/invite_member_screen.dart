@@ -578,7 +578,7 @@ class _InviteMemberScreenState
                 ),
               ),
               const Spacer(),
-              if (trailing != null) trailing,
+              ?trailing,
             ],
           ),
 
